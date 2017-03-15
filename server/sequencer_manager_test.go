@@ -108,13 +108,12 @@ func TestSequencerManagerNothingToDo(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockAdmin := storage.NewMockAdminStorage(mockCtrl)
-	mockStorage := storage.NewMockLogStorage(mockCtrl)
+	registry := extension.Registry{
+		AdminStorage: storage.NewMockAdminStorage(mockCtrl),
+		LogStorage:   storage.NewMockLogStorage(mockCtrl),
+		KeyProvider:  &keyProvider{},
+	}
 
-	registry := extension.NewMockRegistry(mockCtrl)
-	registry.EXPECT().GetAdminStorage().Return(mockAdmin)
-	registry.EXPECT().GetLogStorage().Return(mockStorage, nil)
-	registry.EXPECT().GetKeyProvider().Return(&keyProvider{}, nil)
 	sm := NewSequencerManager(registry, zeroDuration)
 
 	sm.ExecutePass([]int64{}, createTestContext(registry))
@@ -146,12 +145,14 @@ func TestSequencerManagerSingleLogNoLeaves(t *testing.T) {
 	mockAdminTx.EXPECT().GetTree(gomock.Any(), logID).Return(stestonly.LogTree, nil)
 	mockAdminTx.EXPECT().Close().Return(nil)
 
-	registry := extension.NewMockRegistry(mockCtrl)
-	registry.EXPECT().GetAdminStorage().Return(mockAdmin)
-	registry.EXPECT().GetLogStorage().Return(mockStorage, nil)
-	registry.EXPECT().GetKeyProvider().Return(&keyProvider{
-		signers: map[int64]crypto.Signer{logID: signer},
-	}, nil)
+	registry := extension.Registry{
+		AdminStorage: mockAdmin,
+		LogStorage:   mockStorage,
+		KeyProvider: &keyProvider{
+			signers: map[int64]crypto.Signer{logID: signer},
+		},
+	}
+
 	sm := NewSequencerManager(registry, zeroDuration)
 
 	sm.ExecutePass([]int64{logID}, createTestContext(registry))
@@ -188,12 +189,13 @@ func TestSequencerManagerSingleLogOneLeaf(t *testing.T) {
 	mockAdminTx.EXPECT().GetTree(gomock.Any(), logID).Return(stestonly.LogTree, nil)
 	mockAdminTx.EXPECT().Close().Return(nil)
 
-	registry := extension.NewMockRegistry(mockCtrl)
-	registry.EXPECT().GetAdminStorage().Return(mockAdmin)
-	registry.EXPECT().GetLogStorage().Return(mockStorage, nil)
-	registry.EXPECT().GetKeyProvider().Return(&keyProvider{
-		signers: map[int64]crypto.Signer{logID: signer},
-	}, nil)
+	registry := extension.Registry{
+		AdminStorage: mockAdmin,
+		LogStorage:   mockStorage,
+		KeyProvider: &keyProvider{
+			signers: map[int64]crypto.Signer{logID: signer},
+		},
+	}
 
 	sm := NewSequencerManager(registry, zeroDuration)
 
@@ -227,12 +229,13 @@ func TestSequencerManagerGuardWindow(t *testing.T) {
 	mockAdminTx.EXPECT().GetTree(gomock.Any(), logID).Return(stestonly.LogTree, nil)
 	mockAdminTx.EXPECT().Close().Return(nil)
 
-	registry := extension.NewMockRegistry(mockCtrl)
-	registry.EXPECT().GetAdminStorage().Return(mockAdmin)
-	registry.EXPECT().GetLogStorage().Return(mockStorage, nil)
-	registry.EXPECT().GetKeyProvider().Return(&keyProvider{
-		signers: map[int64]crypto.Signer{logID: signer},
-	}, nil)
+	registry := extension.Registry{
+		AdminStorage: mockAdmin,
+		LogStorage:   mockStorage,
+		KeyProvider: &keyProvider{
+			signers: map[int64]crypto.Signer{logID: signer},
+		},
+	}
 
 	sm := NewSequencerManager(registry, time.Second*5)
 

@@ -40,8 +40,7 @@ func (s *adminServer) ListTrees(context.Context, *trillian.ListTreesRequest) (*t
 }
 
 func (s *adminServer) GetTree(ctx context.Context, request *trillian.GetTreeRequest) (*trillian.Tree, error) {
-	storage := s.registry.GetAdminStorage()
-	tx, err := storage.Snapshot(ctx)
+	tx, err := s.registry.AdminStorage.Snapshot(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +57,7 @@ func (s *adminServer) GetTree(ctx context.Context, request *trillian.GetTreeRequ
 }
 
 func (s *adminServer) CreateTree(ctx context.Context, request *trillian.CreateTreeRequest) (*trillian.Tree, error) {
-	storage := s.registry.GetAdminStorage()
-	tx, err := storage.Begin(ctx)
+	tx, err := s.registry.AdminStorage.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
