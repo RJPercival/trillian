@@ -17,6 +17,7 @@ package server
 import (
 	"context"
 	"crypto"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -88,6 +89,10 @@ func (p *keyProvider) Signer(ctx context.Context, tree *trillian.Tree) (crypto.S
 		return nil, fmt.Errorf("no signer for tree %v", tree.GetTreeId())
 	}
 	return signer, nil
+}
+
+func (p *keyProvider) Generate(ctx context.Context, tree *trillian.Tree) error {
+	return errors.New("not implemented")
 }
 
 // newSignerWithFixedSig returns a fake signer that always returns the specified signature.

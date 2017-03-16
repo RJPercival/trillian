@@ -57,6 +57,12 @@ func (s *adminServer) GetTree(ctx context.Context, request *trillian.GetTreeRequ
 }
 
 func (s *adminServer) CreateTree(ctx context.Context, request *trillian.CreateTreeRequest) (*trillian.Tree, error) {
+	if _, err := s.registry.KeyProvider.Signer(ctx, request.GetTree()); err != nil && err.Code() == codes.NotFound {
+		if err = s.registry.KeyProvider.Generate(ctx, request.GetTree()); err != nil {
+			return nil, grpc.Errorf(codes.NotFound, "private key not found")
+		}
+	}
+
 	tx, err := s.registry.AdminStorage.Begin(ctx)
 	if err != nil {
 		return nil, err

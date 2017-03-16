@@ -33,6 +33,8 @@ import (
 type Provider interface {
 	// Signer returns a signer for the given tree.
 	Signer(context.Context, *trillian.Tree) (crypto.Signer, error)
+	// Generate creates a new private key for the given tree.
+	Generate(context.Context, *trillian.Tree) error
 }
 
 // PEMKeyProvider loads PEM-encoded private keys.
@@ -58,6 +60,11 @@ func (p PEMKeyProvider) Signer(ctx context.Context, tree *trillian.Tree) (crypto
 	}
 
 	return nil, fmt.Errorf("unsupported PrivateKey type for tree %d: %T", tree.GetTreeId(), privateKey.Message)
+}
+
+// Generate is not supported.
+func (p PEMKeyProvider) Generate(ctx context.Context, tree *trillian.Tree) error {
+	return errors.New("not implemented")
 }
 
 // NewFromPrivatePEMFile reads a PEM-encoded private key from a file.
