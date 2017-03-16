@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/google/trillian"
 )
 
@@ -35,36 +34,6 @@ type Provider interface {
 	Signer(context.Context, *trillian.Tree) (crypto.Signer, error)
 	// Generate creates a new private key for the given tree.
 	Generate(context.Context, *trillian.Tree) error
-}
-
-// PEMKeyProvider loads PEM-encoded private keys.
-// It only supports trees whose PrivateKey field is a trillian.PEMKeyFile.
-// It implements keys.Provider.
-// TODO(robpercival): Should this cache loaded private keys? The SequenceManager will request a signer for each batch of leaves it sequences.
-type PEMKeyProvider struct{}
-
-// Signer returns a crypto.Signer for the given tree.
-func (p PEMKeyProvider) Signer(ctx context.Context, tree *trillian.Tree) (crypto.Signer, error) {
-	if tree.PrivateKey == nil {
-		return nil, fmt.Errorf("tree %d has no PrivateKey", tree.GetTreeId())
-	}
-
-	var privateKey ptypes.DynamicAny
-	if err := ptypes.UnmarshalAny(tree.PrivateKey, &privateKey); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal private key for tree %d: %v", tree.GetTreeId(), err)
-	}
-
-	switch privateKey := privateKey.Message.(type) {
-	case *trillian.PEMKeyFile:
-		return NewFromPrivatePEMFile(privateKey.Path, privateKey.Password)
-	}
-
-	return nil, fmt.Errorf("unsupported PrivateKey type for tree %d: %T", tree.GetTreeId(), privateKey.Message)
-}
-
-// Generate is not supported.
-func (p PEMKeyProvider) Generate(ctx context.Context, tree *trillian.Tree) error {
-	return errors.New("not implemented")
 }
 
 // NewFromPrivatePEMFile reads a PEM-encoded private key from a file.
