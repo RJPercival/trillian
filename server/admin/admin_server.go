@@ -57,6 +57,9 @@ func (s *adminServer) GetTree(ctx context.Context, request *trillian.GetTreeRequ
 }
 
 func (s *adminServer) CreateTree(ctx context.Context, request *trillian.CreateTreeRequest) (*trillian.Tree, error) {
+	// TODO(robpercival): It may be safer to insist on the key not existing, so that each tree is guaranteed to
+	// have a unique key generated for it. Otherwise, a new tree could be created with the same key as an existing tree.
+	// This prevents callers from providing an existing key though.
 	if _, err := s.registry.KeyProvider.Signer(ctx, request.GetTree()); err != nil && err.Code() == codes.NotFound {
 		if err = s.registry.KeyProvider.Generate(ctx, request.GetTree()); err != nil {
 			return nil, grpc.Errorf(codes.NotFound, "private key not found")
