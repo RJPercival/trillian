@@ -3,21 +3,13 @@ package keys
 import (
 	"context"
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"os"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/trillian"
-	"github.com/google/trillian/crypto/sigpb"
 )
-
-const rsaKeySizeInBits = 4096
 
 // PEMKeyProvider loads PEM-encoded private keys.
 // It only supports trees whose PrivateKey field is a trillian.PEMKeyFile.
@@ -41,43 +33,19 @@ func (p PEMKeyProvider) Signer(ctx context.Context, tree *trillian.Tree) (crypto
 // This private key will be written to disk with file permissions 0400.
 // If the tree specifies a password for the private key, it will be encrypted using AES-256 and this password.
 func (p PEMKeyProvider) Generate(ctx context.Context, tree *trillian.Tree) error {
-	var pemBlock pem.Block
-
-	switch tree.GetSignatureAlgorithm() {
-	case sigpb.DigitallySigned_ECDSA:
-		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		if err != nil {
-			return err
-		}
-
-		pemBlock.Type = "EC PRIVATE KEY"
-		pemBlock.Bytes, err = x509.MarshalECPrivateKey(key)
-		if err != nil {
-			return err
-		}
-	case sigpb.DigitallySigned_RSA:
-		key, err := rsa.GenerateKey(rand.Reader, rsaKeySizeInBits)
-		if err != nil {
-			return err
-		}
-
-		pemBlock.Type = "RSA PRIVATE KEY"
-		pemBlock.Bytes = x509.MarshalPKCS1PrivateKey(key)
-	default:
-		return fmt.Errorf("unsupported signature algorithm: %v", tree.GetSignatureAlgorithm())
-	}
-
 	keyInfo, err := unmarshalPrivateKey(tree)
 	if err != nil {
 		return err
 	}
 
-	// If a password was provided, encrypt the private key using it.
-	if keyInfo.Password != "" {
-		pemBlock, err = x509.EncryptPEMBlock(rand.Reader, pemBlock.Type, pemBlock.Bytes, []byte(keyInfo.Password), x509.PEMCipherAES256)
-		if err != nil {
-			return err
-		}
+	key, err := Generate(tree.GetSignatureAlgorithm())
+	if err != nil {
+		return err
+	}
+
+	pemBlock, err := ToPrivatePEM(key, keyInfo.GetPassword())
+	if err != nil {
+		return err
 	}
 
 	// Create a file for the private key:
