@@ -151,12 +151,7 @@ func (ll byLeafIndex) Less(i, j int) bool { return ll[i].LeafIndex < ll[j].LeafI
 // waitForRootUpdate repeatedly fetches the Root until the TreeSize changes
 // or until ctx times out.
 func (c *LogClient) waitForRootUpdate(ctx context.Context) error {
-	b := &backoff.Backoff{
-		Min:    100 * time.Millisecond,
-		Max:    10 * time.Second,
-		Factor: 2,
-		Jitter: true,
-	}
+	b := backoff.Exponential()
 	startTreeSize := c.root.TreeSize
 	for i := 0; ; i++ {
 		if err := c.UpdateRoot(ctx); err != nil {

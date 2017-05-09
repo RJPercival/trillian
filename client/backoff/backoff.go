@@ -29,6 +29,16 @@ type Backoff struct {
 	x      int
 }
 
+// Exponential returns an example exponential backoff.
+func Exponential() Backoff {
+	return Backoff{
+		Min:    500 * time.Millisecond,
+		Max:    60 * time.Second,
+		Factor: 1.5,
+		Jitter: true,
+	}
+}
+
 // Duration returns the time to wait on duration x.
 // Every time Duration is called, the returned value will exponentially increase by Factor
 // until Backoff.Max. If Jitter is enabled, will wait an additional random value between
