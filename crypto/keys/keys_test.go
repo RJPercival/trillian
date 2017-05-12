@@ -15,11 +15,13 @@
 package keys
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/asn1"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
@@ -323,4 +325,39 @@ func TestGenerateKey(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestMarshalKey(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		keyDER []byte
+	}{
+		{
+			name:   "ECDSA key",
+			keyDER: mustBase64Decode("MHcCAQEEIHG5m/q2sUSa4P8pRZgYt3K0ESFSKp1qp15VjJhpLle4oAoGCCqGSM49AwEHoUQDQgAEvuynpVdR+5xSNaVBb//1fqO6Nb/nC+WvRQ4bALzy4G+QbByvO1Qpm2eUzTdDUnsLN5hp3pIXYAmtjvjY1fFZEg=="),
+		},
+		{
+			name:   "RSA key",
+			keyDER: mustBase64Decode("MIIEpAIBAAKCAQEAsMB4reLZhs+2ReYX01nZpqLBQ9uhcZvBmzH54RsZDTb5khw+luSXKbLKXxdbQfrsxURbeVdugDNnV897VI43znuiKJ19Y/XS3N5Z7Q97/GOxOxGFObP0DovCAPblxAMaQBb+U9jkVt/4bHcNIOTZl/lXgX+yp58lH5uPfDwav/hVNg7QkAW3BxQZ5wiLTTZUILoTMjax4R24pULlg/Wt/rT4bDj8rxUgYR60MuO93jdBtNGwmzdCYyk4cEmrPEgCueRC6jFafUzlLjvuX89ES9n98LxX+gBANA7RpVPkJd0kfWFHO1JRUEJr++WjU3x4la2Xs4tUNX4QBSJP4XEOXwIDAQABAoIBAHKbquSdho0KnFcAloxd42pQeF7GyA1BgK1gH3XeO0U9U2BxXgg7muTX4K7+FxdWXDahV2r7zVPlgOoISCEQwpDpy8DoNckeOacrqkWz16JVBjOV7bv3upW/+4DilyOdG2VZQ3oc1hqayZuTKnkcyxbm/92hbreP0uOG2+gjlPjKOm7Jvv9oXLjrVHg0eXznOPbUwGWUhupFQF3Vhua2lOGv0MeiwkeczI4c6svBTBpFvnsMNuN1jP+UQluqc4MIxVT8n64PyanNiIAD7hRErbyuowLD2mcW+7dbnu/ZLvPsSw6SUoC1Bd41PUMvPlaYZ5mx62Eqg0jVMn4/PqnGyNECgYEA3Pxg+2Ka8OM6dyKi6GHfenaibZZaFIHe5Bnmw3wH7QIKNqKEvLaWwGBr4JnjA6gH6n05DiVAAgh6bZ6VFrrFyaluklvW5Ne4xm/6T3EIl5mjTxmG6T5WprnlJkvYHWrb8Ool3sEao5bTTJ4Ppn27wJmhXvqnqgqvOkfQaFBVQQkCgYEAzMHfugyhih/4YAocHlLTSzJnjps2LJHFC+N3C3gAMMJS+A67i7YQW/9EmHjEPrF6WAy929f4tNy5+T+YPChS/BICGsiJ5WSR4h4zp/SxfkuYL+bJyNBXZNjvHjRwkoktPqqj1PGSkysJ27fDPjqi4SQ9Auzd+aGAKAo9LoUqdicCgYEAwSMap9rQTARsjr8I3kzcAq4428pyREYVRgqVMvjt/GiyAHodxMlYDB65af1U+VccRAbZnNFVlfFO/wuAhfMK9mtMpkH6GNupNFWd0VybA9RVdMZ8sNG47dK+wa+73EoOnAoouvzOiXdCiU4Do6F0PKqI7PfpHaZk62zkaqb7O/ECgYEAtd2VvAiwCqEu2Q7hvsVOS0Iv3Ohbi+bFoDOfbx5c/PH9A7sCNau2iCAJa2wI0q6MvlxC3lvL2ckbnhkwPG6MlrvgBq4MXSWgtbihpRKf/E9kk1dn7ueuWDKe4LMvMdiJyVmDPwZ6bCEUFoX38vPd7B9l2Y1N9AXQcL/3a7R37I0CgYB0ICJxAPqcKP5WlYFZLiJS/9Gr5UURtOk7DFCWAz/Yzn83aFma7Ala+Li1zEdcydiP7Zir/rvt+Zbrtq1ZyLQe4UiYDMvugcY+Ay+UBPQbi1QEQzBq49OaGVz8PfeeB4zfO2+HVb0ipdoT8+pXLCg5Tycvjr13bGcX3PTWggkDUw=="),
+		},
+	} {
+		key, err := NewFromPrivateDER(test.keyDER)
+		if err != nil {
+			t.Errorf("%v: failed to load DER-encoded test key: %v", test.name, err)
+			continue
+		}
+
+		got, err := MarshalPrivateDER(key)
+		if err != nil || !bytes.Equal(got, test.keyDER) {
+			t.Errorf("%v: MarshalPrivateDER() = (%v, %v), want (%v, nil)", test.name, got, err, test.keyDER)
+		}
+	}
+}
+
+func mustBase64Decode(b64 string) []byte {
+	data, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }

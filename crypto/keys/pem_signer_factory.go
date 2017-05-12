@@ -17,9 +17,6 @@ package keys
 import (
 	"context"
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/rsa"
-	"crypto/x509"
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes"
@@ -72,21 +69,7 @@ func (f PEMSignerFactory) Generate(ctx context.Context, tree *trillian.Tree, spe
 		return nil, fmt.Errorf("Specification produces %T, but tree.SignatureAlgorithm = %v", key, tree.GetSignatureAlgorithm())
 	}
 
-	return marshalPrivateKey(key)
-}
-
-func marshalPrivateKey(key crypto.Signer) (*any.Any, error) {
-	var privateKeyDER []byte
-	var err error
-
-	switch key := key.(type) {
-	case *ecdsa.PrivateKey:
-		privateKeyDER, err = x509.MarshalECPrivateKey(key)
-	case *rsa.PrivateKey:
-		privateKeyDER = x509.MarshalPKCS1PrivateKey(key)
-	default:
-		return nil, fmt.Errorf("unsupported key type: %T", key)
-	}
+	privateKeyDER, err := MarshalPrivateDER(key)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling private key as DER: %v", err)
 	}

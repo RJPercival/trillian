@@ -144,6 +144,18 @@ func NewFromSpec(spec *keyspb.Specification) (crypto.Signer, error) {
 	}
 }
 
+// MarshalPrivateDER returns the given key in DER-encoded form.
+func MarshalPrivateDER(key crypto.PrivateKey) ([]byte, error) {
+	switch key := key.(type) {
+	case *ecdsa.PrivateKey:
+		return x509.MarshalECPrivateKey(key)
+	case *rsa.PrivateKey:
+		return x509.MarshalPKCS1PrivateKey(key), nil
+	default:
+		return nil, fmt.Errorf("unsupported key type: %T", key)
+	}
+}
+
 // curveFromParams returns the curve specified by the given parameters.
 // Returns nil if the curve is not supported.
 func curveFromParams(params *keyspb.Specification_ECDSA) elliptic.Curve {
