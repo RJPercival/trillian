@@ -15,6 +15,7 @@
 package ct
 
 import (
+	"crypto"
 	"encoding/json"
 	"errors"
 	"expvar"
@@ -23,18 +24,20 @@ import (
 	"time"
 
 	"github.com/google/trillian"
-	"github.com/google/trillian/crypto"
+	trilliancrypto "github.com/google/trillian/crypto"
 	"github.com/google/trillian/crypto/keys"
 	"github.com/google/trillian/util"
+	"github.com/letsencrypt/pkcs11key"
 )
 
 // LogConfig describes the configuration options for a log instance.
 type LogConfig struct {
-	LogID           int64
-	Prefix          string
-	RootsPEMFile    []string
-	PrivKeyPEMFile  string
-	PrivKeyPassword string
+	LogID            int64
+	Prefix           string
+	RootsPEMFile     []string
+	PrivKeyPEMFile   string
+	PrivKeyPassword  string
+	PKCS11ConfigFile string
 	// The public key is included for the convenience of test tools (and obviously should
 	// match the private key above); it is not used by the CT personality.
 	PubKeyPEMFile string
@@ -89,8 +92,8 @@ func (cfg LogConfig) SetUpInstance(client trillian.TrillianLogClient, deadline t
 	if len(cfg.RootsPEMFile) == 0 {
 		return nil, errors.New("need to specify RootsPEMFile")
 	}
-	if len(cfg.PrivKeyPEMFile) == 0 {
-		return nil, errors.New("need to specify PrivKeyPEMFile")
+	if len(cfg.PrivKeyPEMFile) == 0 && len(cfg.PKCS11ConfigFile) == 0 {
+		return nil, errors.New("need to specify either PrivKeyPEMFile or PKCS11ConfigFile")
 	}
 
 	// Load the trusted roots
@@ -102,12 +105,30 @@ func (cfg LogConfig) SetUpInstance(client trillian.TrillianLogClient, deadline t
 	}
 
 	// Load the private key for this log.
-	key, err := keys.NewFromPrivatePEMFile(cfg.PrivKeyPEMFile, cfg.PrivKeyPassword)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load private key: %v", err)
+	var key crypto.Signer
+	if len(cfg.PrivKeyPEMFile) != 0 {
+		var err error
+		key, err = keys.NewFromPrivatePEMFile(cfg.PrivKeyPEMFile, cfg.PrivKeyPassword)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load private key: %v", err)
+		}
+	} else {
+		contents, err := ioutil.ReadFile(cfg.PKCS11ConfigFile)
+		if err != nil {
+			return nil, err
+		}
+		var config pkcs11key.Config
+		err = json.Unmarshal(contents, &config)
+		if err != nil {
+			return nil, err
+		}
+		key, err = pkcs11key.NewPool(1, config.Module, config.TokenLabel, config.PIN, config.PrivateKeyLabel)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load PKCS#11 key: %v", err)
+		}
 	}
 
-	signer := crypto.NewSHA256Signer(key)
+	signer := trilliancrypto.NewSHA256Signer(key)
 
 	// Create and register the handlers using the RPC client we just set up
 	ctx := NewLogContext(cfg.LogID, cfg.Prefix, roots, cfg.RejectExpired, client, signer, deadline, new(util.SystemTimeSource))

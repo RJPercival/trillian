@@ -32,6 +32,7 @@ import (
 // It supports trees whose PrivateKey field is a:
 // - keyspb.PEMKeyFile
 // - keyspb.PrivateKey
+// - keyspb.PKCS11ConfigFile
 // It implements keys.SignerFactory.
 type PEMSignerFactory struct{}
 
@@ -51,6 +52,8 @@ func (f PEMSignerFactory) NewSigner(ctx context.Context, tree *trillian.Tree) (c
 		return NewFromPrivatePEMFile(privateKey.GetPath(), privateKey.GetPassword())
 	case *keyspb.PrivateKey:
 		return NewFromPrivateDER(privateKey.GetDer())
+	case *keyspb.PKCS11ConfigFile:
+		return NewFromPKCS11Config(privateKey.GetPath())
 	}
 
 	return nil, fmt.Errorf("unsupported PrivateKey type for tree %d: %T", tree.GetTreeId(), privateKey.Message)

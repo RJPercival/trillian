@@ -57,9 +57,10 @@ var (
 	displayName        = flag.String("display_name", "", "Display name of the new tree")
 	description        = flag.String("description", "", "Description of the new tree")
 
-	privateKeyFormat = flag.String("private_key_format", "PEMKeyFile", "Type of private key to be used")
+	privateKeyFormat = flag.String("private_key_format", "PEMKeyFile", "Type of private key to be used (PEMKeyFile or PKCS11ConfigFile)")
 	pemKeyPath       = flag.String("pem_key_path", "", "Path to the private key PEM file")
 	pemKeyPassword   = flag.String("pem_key_password", "", "Password of the private key PEM file")
+	pkcs11ConfigPath = flag.String("pkcs11_config_path", "", "Path to the PKCS #11 key configuration file")
 )
 
 // createOpts contains all user-supplied options required to run the program.
@@ -67,7 +68,7 @@ var (
 type createOpts struct {
 	addr                                                                                     string
 	treeState, treeType, hashStrategy, hashAlgorithm, sigAlgorithm, displayName, description string
-	privateKeyType, pemKeyPath, pemKeyPass                                                   string
+	privateKeyType, pemKeyPath, pemKeyPass, pkcs11ConfigPath                                 string
 }
 
 func createTree(ctx context.Context, opts *createOpts) (*trillian.Tree, error) {
@@ -151,6 +152,11 @@ func newPK(opts *createOpts) (*any.Any, error) {
 			Password: opts.pemKeyPass,
 		}
 		return ptypes.MarshalAny(pemKey)
+	case "PKCS11ConfigFile":
+		if opts.pkcs11ConfigPath == "" {
+			return nil, errors.New("empty PKCS11 config file path")
+		}
+		return ptypes.MarshalAny(&keyspb.PKCS11ConfigFile{opts.pkcs11ConfigPath})
 	default:
 		return nil, fmt.Errorf("unknown private key type: %v", opts.privateKeyType)
 	}
@@ -158,17 +164,18 @@ func newPK(opts *createOpts) (*any.Any, error) {
 
 func newOptsFromFlags() *createOpts {
 	return &createOpts{
-		addr:           *adminServerAddr,
-		treeState:      *treeState,
-		treeType:       *treeType,
-		hashStrategy:   *hashStrategy,
-		hashAlgorithm:  *hashAlgorithm,
-		sigAlgorithm:   *signatureAlgorithm,
-		displayName:    *displayName,
-		description:    *description,
-		privateKeyType: *privateKeyFormat,
-		pemKeyPath:     *pemKeyPath,
-		pemKeyPass:     *pemKeyPassword,
+		addr:             *adminServerAddr,
+		treeState:        *treeState,
+		treeType:         *treeType,
+		hashStrategy:     *hashStrategy,
+		hashAlgorithm:    *hashAlgorithm,
+		sigAlgorithm:     *signatureAlgorithm,
+		displayName:      *displayName,
+		description:      *description,
+		privateKeyType:   *privateKeyFormat,
+		pemKeyPath:       *pemKeyPath,
+		pemKeyPass:       *pemKeyPassword,
+		pkcs11ConfigPath: *pkcs11ConfigPath,
 	}
 }
 

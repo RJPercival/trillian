@@ -73,3 +73,9 @@ message PublicKey {
   // The key in DER-encoded PKIX form.
   bytes der = 1;
 }
+
+// PKCS11ConfigFile identifies a private key accessed using PKCS #11.
+message PKCS11ConfigFile {
+  // File path of the PKCS #11 config file.
+  string path = 1;
+}
