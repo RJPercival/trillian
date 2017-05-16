@@ -107,7 +107,7 @@ echo "Galera cluster address: ${cluster_address}"
 sed -i -e "s|^wsrep_cluster_address=gcomm://.*$|wsrep_cluster_address=${cluster_address}|" /etc/mysql/conf.d/cluster.cnf
 
 # Provide a random server ID for this replica.
-sed -i -e "s/^server\-id=.*$/server-id=${RANDOM}/" /etc/mysql/my.cnf
+sed -i -e "s/^server\-id=0$/server-id=${RANDOM}/" /etc/mysql/my.cnf
 
 # Finally, start MySQL, passing through any flags.
 chown mysql:mysql "$INIT_SQL"
