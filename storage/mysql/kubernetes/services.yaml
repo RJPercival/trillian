@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  ports:
+    - port: 3306
+      name: mysql
+  type: LoadBalancer
+  # Make all connections from a particular client go to the same database
+  # replica. This avoids a sequencer connecting to different replicas in
+  # parallel and causing write conflicts that result in transaction rollbacks.
+  sessionAffinity: ClientIP
+  selector:
+    app: galera
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: galera
+  labels:
+    app: galera
+spec:
+  clusterIP: None
+  ports:
+    - port: 3306
+      name: mysql
+    - port: 4444
+      name: state-snapshot-transfer
+    - port: 4567
+      name: replication-traffic
+    - port: 4568
+      name: incremental-state-transfer
+  selector:
+    app: galera
+---
