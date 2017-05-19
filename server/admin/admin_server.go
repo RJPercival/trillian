@@ -99,7 +99,7 @@ func (s *Server) CreateTree(ctx context.Context, request *trillian.CreateTreeReq
 	}
 
 	// Check that the tree.PrivateKey is valid by trying to get a signer.
-	signer, err := trees.Signer(ctx, s.registry.SignerFactory, tree)
+	signer, err := trees.Signer(ctx, s.registry.SignerFactory, tree, request.Pkcs11ModulePath)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to create signer for tree: %v", err.Error())
 	}

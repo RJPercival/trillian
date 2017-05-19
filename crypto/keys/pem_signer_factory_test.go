@@ -95,10 +95,10 @@ func TestPEMSignerFactoryNewSigner(t *testing.T) {
 			wantErr: true,
 		},
 	} {
-		signer, err := PEMSignerFactory{}.NewSigner(context.Background(), test.tree)
+		signer, err := PEMSignerFactory{}.NewSigner(context.Background(), test.tree, "")
 		switch gotErr := err != nil; {
 		case gotErr != test.wantErr:
-			t.Errorf("%v: Signer(_, %v) = (%v, %v), want err? %v", test.name, test.tree, signer, err, test.wantErr)
+			t.Errorf("%v: Signer(_, %v, _) = (%v, %v), want err? %v", test.name, test.tree, signer, err, test.wantErr)
 			continue
 		case gotErr:
 			continue
@@ -107,7 +107,7 @@ func TestPEMSignerFactoryNewSigner(t *testing.T) {
 		// Check that the returned signer can produce signatures successfully.
 		digest := sha256.Sum256([]byte("test"))
 		if _, err := signer.Sign(rand.Reader, digest[:], crypto.SHA256); err != nil {
-			t.Errorf("%v: Signer(_, %v).Sign() = (_, %v), want err? false", test.name, test.tree, err)
+			t.Errorf("%v: Signer(_, %v, _).Sign() = (_, %v), want err? false", test.name, test.tree, err)
 		}
 	}
 }
@@ -200,9 +200,9 @@ func TestPEMSignerFactoryGenerate(t *testing.T) {
 		newTree := *test.tree
 		newTree.PrivateKey = key
 
-		signer, err := sf.NewSigner(ctx, &newTree)
+		signer, err := sf.NewSigner(ctx, &newTree, "")
 		if err != nil {
-			t.Errorf("%v: NewSigner(_, %v) = (_, %v), want (_, nil)", test.name, newTree, err)
+			t.Errorf("%v: NewSigner(_, %v, _) = (_, %v), want (_, nil)", test.name, newTree, err)
 			continue
 		}
 

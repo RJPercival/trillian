@@ -74,8 +74,12 @@ message PublicKey {
   bytes der = 1;
 }
 
-// PKCS11ConfigFile identifies a private key accessed using PKCS #11.
-message PKCS11ConfigFile {
-  // File path of the PKCS #11 config file.
-  string path = 1;
+// PKCS11Config identifies a private key accessed using PKCS #11.
+message PKCS11Config {
+  // The label of the PKCS#11 token.
+  string token_label = 1;
+  // The PIN for the specific token.
+  string pin = 2;
+  // The label of the private key to use.
+  string private_key_label = 3;
 }

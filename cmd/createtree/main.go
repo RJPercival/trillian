@@ -33,9 +33,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/golang/protobuf/ptypes"
@@ -43,6 +45,7 @@ import (
 	"github.com/google/trillian"
 	"github.com/google/trillian/crypto/keyspb"
 	"github.com/google/trillian/crypto/sigpb"
+	"github.com/letsencrypt/pkcs11key"
 	"google.golang.org/grpc"
 )
 
@@ -61,6 +64,7 @@ var (
 	pemKeyPath       = flag.String("pem_key_path", "", "Path to the private key PEM file")
 	pemKeyPassword   = flag.String("pem_key_password", "", "Password of the private key PEM file")
 	pkcs11ConfigPath = flag.String("pkcs11_config_path", "", "Path to the PKCS #11 key configuration file")
+	pkcs11ModulePath = flag.String("pkcs11_module_path", "", "Path to the PKCS #11 module")
 )
 
 // createOpts contains all user-supplied options required to run the program.
@@ -68,7 +72,7 @@ var (
 type createOpts struct {
 	addr                                                                                     string
 	treeState, treeType, hashStrategy, hashAlgorithm, sigAlgorithm, displayName, description string
-	privateKeyType, pemKeyPath, pemKeyPass, pkcs11ConfigPath                                 string
+	privateKeyType, pemKeyPath, pemKeyPass, pkcs11ConfigPath, pkcs11ModulePath               string
 }
 
 func createTree(ctx context.Context, opts *createOpts) (*trillian.Tree, error) {
@@ -125,7 +129,7 @@ func newRequest(opts *createOpts) (*trillian.CreateTreeRequest, error) {
 		return nil, err
 	}
 
-	tree := &trillian.Tree{
+	ctr := &trillian.CreateTreeRequest{Tree: &trillian.Tree{
 		TreeState:          trillian.TreeState(ts),
 		TreeType:           trillian.TreeType(tt),
 		HashStrategy:       trillian.HashStrategy(hs),
@@ -134,8 +138,11 @@ func newRequest(opts *createOpts) (*trillian.CreateTreeRequest, error) {
 		DisplayName:        opts.displayName,
 		Description:        opts.description,
 		PrivateKey:         pk,
+	}}
+	if opts.privateKeyType == "PKCS11ConfigFile" {
+		ctr.Pkcs11ModulePath = opts.pkcs11ModulePath
 	}
-	return &trillian.CreateTreeRequest{Tree: tree}, nil
+	return ctr, nil
 }
 
 func newPK(opts *createOpts) (*any.Any, error) {
@@ -156,7 +163,19 @@ func newPK(opts *createOpts) (*any.Any, error) {
 		if opts.pkcs11ConfigPath == "" {
 			return nil, errors.New("empty PKCS11 config file path")
 		}
-		return ptypes.MarshalAny(&keyspb.PKCS11ConfigFile{opts.pkcs11ConfigPath})
+		configBytes, err := ioutil.ReadFile(opts.pkcs11ConfigPath)
+		if err != nil {
+			return nil, err
+		}
+		var config pkcs11key.Config
+		if err = json.Unmarshal(configBytes, &config); err != nil {
+			return nil, err
+		}
+		return ptypes.MarshalAny(&keyspb.PKCS11Config{
+			TokenLabel:      config.TokenLabel,
+			Pin:             config.PIN,
+			PrivateKeyLabel: config.PrivateKeyLabel,
+		})
 	default:
 		return nil, fmt.Errorf("unknown private key type: %v", opts.privateKeyType)
 	}

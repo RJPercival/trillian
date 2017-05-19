@@ -75,6 +75,9 @@ type LogOperationInfo struct {
 	ResignOdds int
 	// NumWorkers is the number of worker goroutines to run in parallel.
 	NumWorkers int
+	// PKCS11ModulePath is the path to the PKCS#11 module to use if the tree key
+	// uses a PKCS#11 interface.
+	PKCS11ModulePath string
 }
 
 type electionRunner struct {

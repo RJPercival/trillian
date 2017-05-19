@@ -50,6 +50,8 @@ var (
 	masterCheckInterval = flag.Duration("master_check_interval", 5*time.Second, "Interval between checking mastership still held")
 	masterHoldInterval  = flag.Duration("master_hold_interval", 60*time.Second, "Minimum interval to hold mastership for")
 	resignOdds          = flag.Int("resign_odds", 10, "Chance of resigning mastership after each check, the N in 1-in-N")
+
+	pkcs11ModulePath = flag.String("pkcs11_module_path", "", "Path to the PKCS#11 module to use for keys that use the PKCS#11 interface")
 )
 
 func main() {
@@ -113,6 +115,7 @@ func main() {
 		MasterCheckInterval: *masterCheckInterval,
 		MasterHoldInterval:  *masterHoldInterval,
 		ResignOdds:          *resignOdds,
+		PKCS11ModulePath:    *pkcs11ModulePath,
 	}
 	sequencerTask := server.NewLogOperationManager(info, sequencerManager)
 	sequencerTask.OperationLoop(ctx)

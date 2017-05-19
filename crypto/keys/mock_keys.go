@@ -44,13 +44,13 @@ func (_mr *_MockSignerFactoryRecorder) Generate(arg0, arg1, arg2 interface{}) *g
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Generate", arg0, arg1, arg2)
 }
 
-func (_m *MockSignerFactory) NewSigner(_param0 context.Context, _param1 *trillian.Tree) (crypto.Signer, error) {
-	ret := _m.ctrl.Call(_m, "NewSigner", _param0, _param1)
+func (_m *MockSignerFactory) NewSigner(_param0 context.Context, _param1 *trillian.Tree, _param2 string) (crypto.Signer, error) {
+	ret := _m.ctrl.Call(_m, "NewSigner", _param0, _param1, _param2)
 	ret0, _ := ret[0].(crypto.Signer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-func (_mr *_MockSignerFactoryRecorder) NewSigner(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewSigner", arg0, arg1)
+func (_mr *_MockSignerFactoryRecorder) NewSigner(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "NewSigner", arg0, arg1, arg2)
 }

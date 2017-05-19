@@ -22,7 +22,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -47,7 +46,7 @@ const MinRsaKeySizeInBits = 2048
 type SignerFactory interface {
 	// NewSigner returns a signer for the given tree.
 	// It consults Tree.PrivateKey to determine how to retrieve the key.
-	NewSigner(context.Context, *trillian.Tree) (crypto.Signer, error)
+	NewSigner(context.Context, *trillian.Tree, string) (crypto.Signer, error)
 
 	// Generate creates a new private key for a tree based on a key specification.
 	// It returns a proto that can be used as the value of tree.PrivateKey.
@@ -162,16 +161,7 @@ func curveFromParams(params *keyspb.Specification_ECDSA) elliptic.Curve {
 	return nil
 }
 
-// NewFromPKCS11Config something something
-func NewFromPKCS11Config(path string) (crypto.Signer, error) {
-	contents, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var config pkcs11key.Config
-	err = json.Unmarshal(contents, &config)
-	if err != nil {
-		return nil, err
-	}
-	return pkcs11key.NewPool(1, config.Module, config.TokenLabel, config.PIN, config.PrivateKeyLabel)
+// NewFromPKCS11Config returns a crypto.Signer that uses a PKCS#11 interface.
+func NewFromPKCS11Config(modulePath string, config *keyspb.PKCS11Config) (crypto.Signer, error) {
+	return pkcs11key.New(modulePath, config.TokenLabel, config.Pin, config.PrivateKeyLabel)
 }

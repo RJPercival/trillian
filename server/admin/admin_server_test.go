@@ -117,7 +117,7 @@ func TestServer_BeginError(t *testing.T) {
 		}
 
 		sf := keys.NewMockSignerFactory(ctrl)
-		sf.EXPECT().NewSigner(gomock.Any(), gomock.Any()).MaxTimes(1).Return(privateKey, nil)
+		sf.EXPECT().NewSigner(gomock.Any(), gomock.Any(), "").MaxTimes(1).Return(privateKey, nil)
 
 		registry := extension.Registry{
 			AdminStorage:  as,
@@ -423,10 +423,10 @@ func TestServer_CreateTree(t *testing.T) {
 				}
 
 				sf.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return(keyProto, nil)
-				sf.EXPECT().NewSigner(gomock.Any(), gomock.Any()).Return(privateKey, nil)
+				sf.EXPECT().NewSigner(gomock.Any(), gomock.Any(), "").Return(privateKey, nil)
 			}
 		} else if test.req.Tree.GetPrivateKey() != nil {
-			sf.EXPECT().NewSigner(gomock.Any(), test.req.Tree).MaxTimes(1).Return(privateKey, nil)
+			sf.EXPECT().NewSigner(gomock.Any(), test.req.Tree, "").MaxTimes(1).Return(privateKey, nil)
 		}
 
 		setup := setupAdminServer(ctrl, sf, false /* snapshot */, test.wantCommit, test.commitErr)

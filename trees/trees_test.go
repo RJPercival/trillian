@@ -336,9 +336,9 @@ func TestSigner(t *testing.T) {
 		tree.SignatureAlgorithm = test.sigAlgo
 
 		sf := keys.NewMockSignerFactory(ctrl)
-		sf.EXPECT().NewSigner(ctx, &tree).MaxTimes(1).Return(test.signer, test.signerFactoryErr)
+		sf.EXPECT().NewSigner(ctx, &tree, "").MaxTimes(1).Return(test.signer, test.signerFactoryErr)
 
-		signer, err := Signer(ctx, sf, &tree)
+		signer, err := Signer(ctx, sf, &tree, "")
 		if hasErr := err != nil; hasErr != test.wantErr {
 			t.Errorf("%v: Signer(_, %s) = (_, %q), wantErr = %v", test.desc, test.sigAlgo, err, test.wantErr)
 			continue

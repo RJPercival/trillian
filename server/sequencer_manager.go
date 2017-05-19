@@ -70,7 +70,7 @@ func (s *SequencerManager) ExecutePass(ctx context.Context, logID int64, info *L
 		return 0, fmt.Errorf("error getting hasher for log %v: %v", logID, err)
 	}
 
-	signer, err := s.getSigner(ctx, tree)
+	signer, err := s.getSigner(ctx, tree, info.PKCS11ModulePath)
 	if err != nil {
 		return 0, fmt.Errorf("error getting signer for log %v: %v", logID, err)
 	}
@@ -87,7 +87,7 @@ func (s *SequencerManager) ExecutePass(ctx context.Context, logID int64, info *L
 
 // getSigner returns a signer for the given tree.
 // Signers are cached, so only one will be created per tree.
-func (s *SequencerManager) getSigner(ctx context.Context, tree *trillian.Tree) (*crypto.Signer, error) {
+func (s *SequencerManager) getSigner(ctx context.Context, tree *trillian.Tree, pkcs11Module string) (*crypto.Signer, error) {
 	s.signersMutex.Lock()
 	defer s.signersMutex.Unlock()
 
@@ -95,7 +95,7 @@ func (s *SequencerManager) getSigner(ctx context.Context, tree *trillian.Tree) (
 		return signer, nil
 	}
 
-	signer, err := trees.Signer(ctx, s.registry.SignerFactory, tree)
+	signer, err := trees.Signer(ctx, s.registry.SignerFactory, tree, pkcs11Module)
 	if err != nil {
 		return nil, err
 	}

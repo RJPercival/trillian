@@ -122,7 +122,7 @@ func (cfg LogConfig) SetUpInstance(client trillian.TrillianLogClient, deadline t
 		if err != nil {
 			return nil, err
 		}
-		key, err = pkcs11key.NewPool(1, config.Module, config.TokenLabel, config.PIN, config.PrivateKeyLabel)
+		key, err = pkcs11key.New(config.Module, config.TokenLabel, config.PIN, config.PrivateKeyLabel)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load PKCS#11 key: %v", err)
 		}

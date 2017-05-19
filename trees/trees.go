@@ -124,7 +124,7 @@ func Hasher(tree *trillian.Tree) (merkle.TreeHasher, error) {
 }
 
 // Signer returns a Trillian crypto.Signer configured by the tree.
-func Signer(ctx context.Context, sf keys.SignerFactory, tree *trillian.Tree) (*tcrypto.Signer, error) {
+func Signer(ctx context.Context, sf keys.SignerFactory, tree *trillian.Tree, pkcs11Module string) (*tcrypto.Signer, error) {
 	if tree.SignatureAlgorithm == sigpb.DigitallySigned_ANONYMOUS {
 		return nil, fmt.Errorf("signature algorithm not supported: %s", tree.SignatureAlgorithm)
 	}
@@ -134,7 +134,7 @@ func Signer(ctx context.Context, sf keys.SignerFactory, tree *trillian.Tree) (*t
 		return nil, err
 	}
 
-	signer, err := sf.NewSigner(ctx, tree)
+	signer, err := sf.NewSigner(ctx, tree, pkcs11Module)
 	if err != nil {
 		return nil, err
 	}
