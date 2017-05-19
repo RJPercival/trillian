@@ -50,15 +50,14 @@ if [ -z "$WSREP_SST_USER" -o -z "$WSREP_SST_PASSWORD" ]; then
 fi
 
 # Make sure that the datadir exists and is owned by the MySQL user and group.
-mkdir -p "$DATADIR"
-chown -R mysql:mysql "$DATADIR"
+# Initialize the mysql database if it does not exist.
+if [ ! -d "${DATADIR}/mysql" ]; then
+  # Delete any files that are already in $DATADIR, because mysqld --initialize
+  # will fail if the directory isn't empty.
+  rm -rf ${DATADIR}/*
+  chown -R mysql:mysql "$DATADIR"
 
-# If this is the first node, initialize the mysql database if it does not exist.
-# This database will be replicated to all other nodes via SST.
-if [[ "$(hostname)" == *-0 ]]; then
-  if [ ! -d "${DATADIR}/mysql" ]; then
-    mysqld --initialize --user=mysql --datadir "${DATADIR}" --ignore-db-dir "lost+found"
-  fi
+  mysqld --initialize --user=mysql --datadir "${DATADIR}" --ignore-db-dir "lost+found"
 fi
 
 # This SQL script will be run when the server starts up.
