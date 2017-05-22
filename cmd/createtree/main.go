@@ -64,7 +64,6 @@ var (
 	pemKeyPath       = flag.String("pem_key_path", "", "Path to the private key PEM file")
 	pemKeyPassword   = flag.String("pem_key_password", "", "Password of the private key PEM file")
 	pkcs11ConfigPath = flag.String("pkcs11_config_path", "", "Path to the PKCS #11 key configuration file")
-	pkcs11ModulePath = flag.String("pkcs11_module_path", "", "Path to the PKCS #11 module")
 )
 
 // createOpts contains all user-supplied options required to run the program.
@@ -129,7 +128,7 @@ func newRequest(opts *createOpts) (*trillian.CreateTreeRequest, error) {
 		return nil, err
 	}
 
-	ctr := &trillian.CreateTreeRequest{Tree: &trillian.Tree{
+	return &trillian.CreateTreeRequest{Tree: &trillian.Tree{
 		TreeState:          trillian.TreeState(ts),
 		TreeType:           trillian.TreeType(tt),
 		HashStrategy:       trillian.HashStrategy(hs),
@@ -138,11 +137,7 @@ func newRequest(opts *createOpts) (*trillian.CreateTreeRequest, error) {
 		DisplayName:        opts.displayName,
 		Description:        opts.description,
 		PrivateKey:         pk,
-	}}
-	if opts.privateKeyType == "PKCS11ConfigFile" {
-		ctr.Pkcs11ModulePath = opts.pkcs11ModulePath
-	}
-	return ctr, nil
+	}}, nil
 }
 
 func newPK(opts *createOpts) (*any.Any, error) {

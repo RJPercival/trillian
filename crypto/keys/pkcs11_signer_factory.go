@@ -20,6 +20,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
+	"errors"
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes"
@@ -28,12 +29,21 @@ import (
 	"github.com/google/trillian/crypto/keyspb"
 )
 
-// PEMSignerFactory handles PEM-encoded private keys.
-// It supports trees whose PrivateKey field is a:
-// - keyspb.PEMKeyFile
-// - keyspb.PrivateKey
+// PKCS11SignerFactory retrieves keys using a PKCS#11 module.
+// Such modules typically provide access to hardware security modules (HSMs).
+// It supports trees whose PrivateKey field is a keyspb.PKCS11Config.
 // It implements keys.SignerFactory.
-type PEMSignerFactory struct{}
+type PKCS11SignerFactory struct {
+	modulePath string
+}
+
+// NewPKCS11SignerFactory returns a PKCS11SignerFactory that uses the specified PKCS#11 module to retrieve keys.
+// The modulePath must identify a library to load, e.g. "/usr/lib/opensc-ppkcs11.so".
+func NewPKCS11SignerFactory(modulePath string) *PKCS11SignerFactory {
+	return &PKCS11SignerFactory{
+		modulePath: modulePath,
+	}
+}
 
 // NewSigner returns a crypto.Signer for the given tree.
 func (f PEMSignerFactory) NewSigner(ctx context.Context, tree *trillian.Tree, pkcs11Module string) (crypto.Signer, error) {
@@ -47,10 +57,8 @@ func (f PEMSignerFactory) NewSigner(ctx context.Context, tree *trillian.Tree, pk
 	}
 
 	switch privateKey := privateKey.Message.(type) {
-	case *keyspb.PEMKeyFile:
-		return NewFromPrivatePEMFile(privateKey.GetPath(), privateKey.GetPassword())
-	case *keyspb.PrivateKey:
-		return NewFromPrivateDER(privateKey.GetDer())
+	case *keyspb.PKCS11Config:
+		return NewFromPKCS11Config(f.modulePath, privateKey)
 	}
 
 	return nil, fmt.Errorf("unsupported PrivateKey type for tree %d: %T", tree.GetTreeId(), privateKey.Message)
@@ -59,37 +67,5 @@ func (f PEMSignerFactory) NewSigner(ctx context.Context, tree *trillian.Tree, pk
 // Generate creates a new private key for a tree based on a key specification.
 // It returns a proto that can be used as the value of tree.PrivateKey.
 func (f PEMSignerFactory) Generate(ctx context.Context, tree *trillian.Tree, spec *keyspb.Specification) (*any.Any, error) {
-	if tree.PrivateKey != nil {
-		return nil, fmt.Errorf("tree already has a private key")
-	}
-
-	key, err := NewFromSpec(spec)
-	if err != nil {
-		return nil, fmt.Errorf("error generating key: %v", err)
-	}
-
-	if SignatureAlgorithm(key.Public()) != tree.GetSignatureAlgorithm() {
-		return nil, fmt.Errorf("Specification produces %T, but tree.SignatureAlgorithm = %v", key, tree.GetSignatureAlgorithm())
-	}
-
-	return marshalPrivateKey(key)
-}
-
-func marshalPrivateKey(key crypto.Signer) (*any.Any, error) {
-	var privateKeyDER []byte
-	var err error
-
-	switch key := key.(type) {
-	case *ecdsa.PrivateKey:
-		privateKeyDER, err = x509.MarshalECPrivateKey(key)
-	case *rsa.PrivateKey:
-		privateKeyDER = x509.MarshalPKCS1PrivateKey(key)
-	default:
-		return nil, fmt.Errorf("unsupported key type: %T", key)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling private key as DER: %v", err)
-	}
-
-	return ptypes.MarshalAny(&keyspb.PrivateKey{Der: privateKeyDER})
+	return errors.New("Generate() not implemented")
 }
