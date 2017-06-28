@@ -5,6 +5,7 @@
 # Flags may be specified to allow suppressing of checks or automatic fixes, try
 # `scripts/presubmit.sh --help` for details.
 set -eu
+shopt -s extglob
 
 check_deps() {
   local failed=0
@@ -35,6 +36,7 @@ main() {
   local run_build=1
   local run_linters=1
   local run_generate=1
+  local run_docker=1
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --fix)
@@ -52,6 +54,9 @@ main() {
         ;;
       --no-generate)
         run_generate=0
+        ;;
+      --no-docker)
+        run_docker=0
         ;;
       *)
         usage
@@ -124,6 +129,10 @@ main() {
     go generate -run="stringer" ${go_dirs}
   fi
 
+  if [[ "${run_docker}" -eq 1 ]]; then
+    echo 'running docker build'
+    find !(vendor) -name 'Dockerfile' -exec docker build . -f '{}' ';'
+  fi
 }
 
 main "$@"

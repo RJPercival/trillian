@@ -1,4 +1,7 @@
-sudo: required # required to install softhsm for PKCS 11 tests
+# sudo required to:
+# - install softhsm for PKCS 11 tests
+# - use Docker (https://docs.travis-ci.com/user/docker/)
+sudo: required
 language: go
 
 os:
@@ -81,7 +84,9 @@ script:
   - ./trillian/integration/integration_test.sh
   - set +e
 
-services: mysql
+services:
+  - docker
+  - mysql
 
 before_script:
   - yes | ./scripts/resetdb.sh
