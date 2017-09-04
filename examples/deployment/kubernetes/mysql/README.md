@@ -1,5 +1,3 @@
-:exclamation: **EXPERIMENTAL** :exclamation:
-
 # MySQL on Kubernetes
 
 ## Usage
@@ -9,7 +7,7 @@ To run a Galera MySQL cluster on Google Cloud, install the
 [Provision a Container cluster](https://cloud.google.com/container-engine/docs/clusters/operations),
 then run the following command:
 ```shell
-kubectl apply -f $GOPATH/src/github.com/google/trillian/storage/mysql/kubernetes
+kubectl apply -f $GOPATH/src/github.com/google/trillian/examples/deployment/kubernetes/mysql
 ```
 
 This will start the Galera cluster. You can monitor provisoning of this cluster
@@ -24,7 +22,7 @@ This dashboard will also show the external IP of the cluster on the
 Once the cluster has been provisioned, prepare the database for use by Trillian
 by running:
 ```shell
-$GOPATH/src/github.com/google/trillian/storage/mysql/kubernetes/resetdb.sh
+$GOPATH/src/github.com/google/trillian/examples/deployment/kubernetes/mysql/resetdb.sh
 ```
 
 ### Firewall
