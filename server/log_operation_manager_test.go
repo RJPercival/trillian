@@ -36,6 +36,7 @@ import (
 const (
 	logIDThatFailsGetTreeOp = int64(98)
 	logIDWithNoDisplayName  = int64(99)
+	logIDForFrozenTree      = int64(100)
 )
 
 func defaultLogOperationInfo(registry extension.Registry) LogOperationInfo {
@@ -135,6 +136,7 @@ func (l logOpInfoMatcher) String() string {
 // The following IDs have special behaviour:
 //  logIDThatFailsGetTreeOp: fail the GetTree() operation
 //  logIDWithNoDisplayName: return a tree with no DisplayName
+//  logIDForFrozenTree: return a frozen tree
 func setupLogIDs(ctrl *gomock.Controller, logNames map[int64]string) (*storage.MockLogStorage, *storage.MockAdminStorage) {
 	ids := make([]int64, 0, len(logNames))
 	for id := range logNames {
@@ -158,6 +160,12 @@ func setupLogIDs(ctrl *gomock.Controller, logNames map[int64]string) (*storage.M
 			mockAdminTx.EXPECT().GetTree(gomock.Any(), logIDWithNoDisplayName).AnyTimes().Return(&trillian.Tree{
 				TreeId: id,
 			}, nil)
+		case logIDForFrozenTree:
+			mockAdminTx.EXPECT().GetTree(gomock.Any(), logIDForFrozenTree).AnyTimes().Return(&trillian.Tree{
+				TreeId:      id,
+				DisplayName: name,
+				TreeState:   trillian.TreeState_FROZEN,
+			}, nil)
 		default:
 			mockAdminTx.EXPECT().GetTree(gomock.Any(), id).AnyTimes().Return(&trillian.Tree{
 				TreeId:      id,
@@ -180,6 +188,34 @@ func TestLogOperationManagerPassesIDs(t *testing.T) {
 	defer ctrl.Finish()
 
 	fakeStorage, mockAdmin := setupLogIDs(ctrl, map[int64]string{logID1: "LogID1", logID2: "LogID2"})
+	registry := extension.Registry{
+		LogStorage:   fakeStorage,
+		AdminStorage: mockAdmin,
+	}
+
+	mockLogOp := NewMockLogOperation(ctrl)
+	infoMatcher := logOpInfoMatcher{50}
+	mockLogOp.EXPECT().ExecutePass(gomock.Any(), logID1, infoMatcher)
+	mockLogOp.EXPECT().ExecutePass(gomock.Any(), logID2, infoMatcher)
+
+	info := defaultLogOperationInfo(registry)
+	lom := NewLogOperationManager(info, mockLogOp)
+
+	lom.OperationSingle(ctx)
+}
+
+func TestLogOperationManagerSkipsFrozenTrees(t *testing.T) {
+	ctx := context.Background()
+	logID1 := int64(451)
+	logID2 := int64(145)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	fakeStorage, mockAdmin := setupLogIDs(ctrl, map[int64]string{
+		logID1:             "LogID1",
+		logID2:             "LogID2",
+		logIDForFrozenTree: "frozen",
+	})
 	registry := extension.Registry{
 		LogStorage:   fakeStorage,
 		AdminStorage: mockAdmin,
