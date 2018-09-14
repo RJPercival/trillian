@@ -33,6 +33,11 @@ import (
 	"github.com/google/trillian/util/election/stub"
 )
 
+const (
+	logIDThatFailsGetTreeOp = int64(98)
+	logIDWithNoDisplayName  = int64(99)
+)
+
 func defaultLogOperationInfo(registry extension.Registry) LogOperationInfo {
 	return LogOperationInfo{
 		Registry:    registry,
@@ -126,9 +131,10 @@ func (l logOpInfoMatcher) String() string {
 	return fmt.Sprintf("has batchSize %d", l.BatchSize)
 }
 
-// Set up some log IDs in mock storage, together with some special values:
-//  logID==98: fail the GetTree() operation
-//  logID==99: return a tree with no DisplayName
+// Set up some log IDs in mock storage.
+// The following IDs have special behaviour:
+//  logIDThatFailsGetTreeOp: fail the GetTree() operation
+//  logIDWithNoDisplayName: return a tree with no DisplayName
 func setupLogIDs(ctrl *gomock.Controller, logNames map[int64]string) (*storage.MockLogStorage, *storage.MockAdminStorage) {
 	ids := make([]int64, 0, len(logNames))
 	for id := range logNames {
@@ -145,10 +151,20 @@ func setupLogIDs(ctrl *gomock.Controller, logNames map[int64]string) (*storage.M
 	mockAdmin := storage.NewMockAdminStorage(ctrl)
 	mockAdminTx := storage.NewMockReadOnlyAdminTX(ctrl)
 	for id, name := range logNames {
-		mockAdminTx.EXPECT().GetTree(gomock.Any(), id).AnyTimes().Return(&trillian.Tree{TreeId: id, DisplayName: name}, nil)
+		switch id {
+		case logIDThatFailsGetTreeOp:
+			mockAdminTx.EXPECT().GetTree(gomock.Any(), id).AnyTimes().Return(nil, errors.New("failedGetTree"))
+		case logIDWithNoDisplayName:
+			mockAdminTx.EXPECT().GetTree(gomock.Any(), logIDWithNoDisplayName).AnyTimes().Return(&trillian.Tree{
+				TreeId: id,
+			}, nil)
+		default:
+			mockAdminTx.EXPECT().GetTree(gomock.Any(), id).AnyTimes().Return(&trillian.Tree{
+				TreeId:      id,
+				DisplayName: name,
+			}, nil)
+		}
 	}
-	mockAdminTx.EXPECT().GetTree(gomock.Any(), int64(98)).AnyTimes().Return(nil, errors.New("failedGetTree"))
-	mockAdminTx.EXPECT().GetTree(gomock.Any(), int64(99)).AnyTimes().Return(&trillian.Tree{TreeId: 99}, nil)
 	mockAdminTx.EXPECT().Commit().AnyTimes().Return(nil)
 	mockAdminTx.EXPECT().Close().AnyTimes().Return(nil)
 	mockAdmin.EXPECT().Snapshot(gomock.Any()).AnyTimes().Return(mockAdminTx, nil)
@@ -163,7 +179,7 @@ func TestLogOperationManagerPassesIDs(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	fakeStorage, mockAdmin := setupLogIDs(ctrl, map[int64]string{451: "LogID1", 145: "LogID2"})
+	fakeStorage, mockAdmin := setupLogIDs(ctrl, map[int64]string{logID1: "LogID1", logID2: "LogID2"})
 	registry := extension.Registry{
 		LogStorage:   fakeStorage,
 		AdminStorage: mockAdmin,
@@ -192,7 +208,7 @@ func TestLogOperationManagerOperationLoopPassesIDs(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	fakeStorage, mockAdmin := setupLogIDs(ctrl, map[int64]string{451: "LogID1", 145: "LogID2"})
+	fakeStorage, mockAdmin := setupLogIDs(ctrl, map[int64]string{logID1: "LogID1", logID2: "LogID2"})
 	registry := extension.Registry{
 		LogStorage:   fakeStorage,
 		AdminStorage: mockAdmin,
@@ -220,7 +236,12 @@ func TestHeldInfo(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	fakeStorage, mockAdmin := setupLogIDs(ctrl, map[int64]string{1: "one", 2: "two"})
+	fakeStorage, mockAdmin := setupLogIDs(ctrl, map[int64]string{
+		1:                       "one",
+		2:                       "two",
+		logIDThatFailsGetTreeOp: "fail",
+		logIDWithNoDisplayName:  "",
+	})
 	registry := extension.Registry{LogStorage: fakeStorage, AdminStorage: mockAdmin}
 	mockLogOp := NewMockLogOperation(ctrl)
 	info := defaultLogOperationInfo(registry)
@@ -234,8 +255,8 @@ func TestHeldInfo(t *testing.T) {
 		{in: []int64{1, 2}, want: "master for: one two"},
 		{in: []int64{2, 1}, want: "master for: one two"},
 		{in: []int64{2, 1, 2}, want: "master for: one two two"},
-		{in: []int64{2, 1, 99}, want: "master for: <log-99> one two"},
-		{in: []int64{2, 1, 98, 1}, want: "master for: <err> one one two"},
+		{in: []int64{2, 1, logIDWithNoDisplayName}, want: fmt.Sprintf("master for: <log-%d> one two", logIDWithNoDisplayName)},
+		{in: []int64{2, 1, logIDThatFailsGetTreeOp, 1}, want: "master for: <err> one one two"},
 	}
 	for _, test := range tests {
 		got := lom.heldInfo(ctx, test.in)
