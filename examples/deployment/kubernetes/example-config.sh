@@ -1,4 +1,4 @@
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Set the following variables to the correct values for your Google Cloud
 # project and Kubernetes cluster.

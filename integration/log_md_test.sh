@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-INTEGRATION_DIR="$( cd "$( dirname "$0" )" && pwd )"
+INTEGRATION_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${INTEGRATION_DIR}"/functions.sh
 
 echo "Launching core Trillian log components"
@@ -16,10 +16,10 @@ metrics_port=$(pick_unused_port ${port})
 echo "Running test against ephemeral tree, metrics on http://localhost:${metrics_port}/metrics"
 go build ${GOFLAGS} github.com/google/trillian/testonly/mdm/mdmtest
 ./mdmtest --rpc_server="${TRILLIAN_SERVER}" \
-          --metrics_endpoint="localhost:${metrics_port}" \
-          --checkers=10 \
-          --new_leaf_chance=90 \
-          --logtostderr
+	--metrics_endpoint="localhost:${metrics_port}" \
+	--checkers=10 \
+	--new_leaf_chance=90 \
+	--logtostderr
 RESULT=$?
 set -e
 

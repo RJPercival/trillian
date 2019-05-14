@@ -15,8 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
 # This script does the following:
 #
 # 1. If starting the first replica in the cluster, and MySQL has not been
@@ -30,20 +28,20 @@
 set -e
 
 if [ "${1:0:1}" = '-' ]; then
-  set -- mysqld "$@"
+	set -- mysqld "$@"
 fi
 
 # The MySQL "datadir", where the databases are stored.
 readonly DATADIR="/var/lib/mysql"
 
 if [ -z "$MYSQL_ROOT_PASSWORD" ]; then
-  echo >&2 'error: MYSQL_ROOT_PASSWORD not set'
-  exit 1
+	echo >&2 'error: MYSQL_ROOT_PASSWORD not set'
+	exit 1
 fi
 
 if [ -z "$WSREP_SST_USER" -o -z "$WSREP_SST_PASSWORD" ]; then
-  echo >&2 'error: WSREP_SST_USER or WSREP_SST_PASSWORD is not set'
-  exit 1
+	echo >&2 'error: WSREP_SST_USER or WSREP_SST_PASSWORD is not set'
+	exit 1
 fi
 
 # Make sure that the datadir exists and is owned by the MySQL user and group.
@@ -53,9 +51,9 @@ chown -R mysql:mysql "$DATADIR"
 # If this is the first node, initialize the mysql database if it does not exist.
 # This database will be replicated to all other nodes via SST.
 if [[ "$(hostname)" == *-0 ]]; then
-  if [ ! -d "${DATADIR}/mysql" ]; then
-    mysqld --initialize --user=mysql --datadir "${DATADIR}" --ignore-db-dir "lost+found"
-  fi
+	if [ ! -d "${DATADIR}/mysql" ]; then
+		mysqld --initialize --user=mysql --datadir "${DATADIR}" --ignore-db-dir "lost+found"
+	fi
 fi
 
 # This SQL script will be run when the server starts up.
@@ -67,7 +65,7 @@ chmod 0600 "${INIT_SQL}"
 # - dummy user with no password or rights, for use by health checks.
 # - SST user for use by Galera to replicate database state between nodes.
 # TODO(robpercival): Restrict root access.
-cat > "$INIT_SQL" <<EOSQL
+cat >"$INIT_SQL" <<EOSQL
 DROP USER IF EXISTS 'root'@'localhost';
 ALTER USER IF EXISTS 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
 CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
@@ -86,9 +84,9 @@ EOSQL
 sed -i -e "s|^wsrep_sst_auth=.*$|wsrep_sst_auth=\"${WSREP_SST_USER}:${WSREP_SST_PASSWORD}\"|" /etc/mysql/conf.d/cluster.cnf
 
 # Provide the replica's own IP address.
-WSREP_NODE_ADDRESS=`ip addr show | grep -E '^[ ]*inet' | grep -m1 global | awk '{ print $2 }' | sed -e 's/\/.*//'`
+WSREP_NODE_ADDRESS=$(ip addr show | grep -E '^[ ]*inet' | grep -m1 global | awk '{ print $2 }' | sed -e 's/\/.*//')
 if [ -n "$WSREP_NODE_ADDRESS" ]; then
-  sed -i -e "s|^wsrep_node_address=.*$|wsrep_node_address=${WSREP_NODE_ADDRESS}|" /etc/mysql/conf.d/cluster.cnf
+	sed -i -e "s|^wsrep_node_address=.*$|wsrep_node_address=${WSREP_NODE_ADDRESS}|" /etc/mysql/conf.d/cluster.cnf
 fi
 
 cluster_address="gcomm://"
@@ -97,10 +95,10 @@ cluster_address="gcomm://"
 # any running Galera nodes. If none are running, this node should bootstrap the
 # cluster.
 for ip in $(dig +short +search galera); do
-  # Do a reverse DNS lookup of the IP so the hostname can be used instead.
-  # This makes it easier to identify nodes in the Galera logs.
-  hostname=$(dig +short +search -x "${ip}")
-  cluster_address+="${hostname},"
+	# Do a reverse DNS lookup of the IP so the hostname can be used instead.
+	# This makes it easier to identify nodes in the Galera logs.
+	hostname=$(dig +short +search -x "${ip}")
+	cluster_address+="${hostname},"
 done
 
 echo "Galera cluster address: ${cluster_address}"
@@ -112,4 +110,3 @@ sed -i -e "s/^server\-id=.*$/server-id=${RANDOM}/" /etc/mysql/my.cnf
 # Finally, start MySQL, passing through any flags.
 chown mysql:mysql "$INIT_SQL"
 exec "$@" --datadir "$DATADIR" --ignore-db-dir "lost+found" --init_file "$INIT_SQL"
-

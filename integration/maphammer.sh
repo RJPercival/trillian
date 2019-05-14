@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-INTEGRATION_DIR="$( cd "$( dirname "$0" )" && pwd )"
+INTEGRATION_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${INTEGRATION_DIR}"/functions.sh
 
 # Default to one map

@@ -16,7 +16,8 @@
 
 tag="us.gcr.io/trillian-test/galera:experimental"
 
-usage=$(cat <<EOF
+usage=$(
+	cat <<EOF
 Usage: $(basename $0) [-t tag]
 
 Builds and pushes the image in this directory to a container repository.
@@ -26,23 +27,25 @@ EOF
 )
 
 while getopts "ht:" opt; do
-  case $opt in
-    h)
-      echo "$usage"; exit 0
-      ;;
-    t)
-      tag=$OPTARG
-      ;;
-    \?)
-      echo "Invalid option: -$OPTARG" >/dev/stderr; exit 1
-      ;;
-    :)
-      echo "Option -$OPTARG requires an argument." >/dev/stderr; exit 1
-      ;;
-  esac
+	case $opt in
+	h)
+		echo "$usage"
+		exit 0
+		;;
+	t)
+		tag=$OPTARG
+		;;
+	\?)
+		echo "Invalid option: -$OPTARG" >/dev/stderr
+		exit 1
+		;;
+	:)
+		echo "Option -$OPTARG requires an argument." >/dev/stderr
+		exit 1
+		;;
+	esac
 done
 
 gcloud auth configure-docker
 docker build -t ${tag} .
 docker push ${tag}
-

@@ -10,7 +10,6 @@ go get -u github.com/Martin2112/github-release
 
 # Generate the changelog.
 github-release info \
-  -r trillian \
-  -u google \
-  --markdown > CHANGELOG.md
-
+	-r trillian \
+	-u google \
+	--markdown >CHANGELOG.md

@@ -5,11 +5,11 @@
 
 set -e
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ $# -ne 1 ]; then
-  echo "Usage: $0 <config file>"
-  exit 1
+	echo "Usage: $0 <config file>"
+	exit 1
 fi
 
 # Set up tunnel:

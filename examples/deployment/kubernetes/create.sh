@@ -4,44 +4,44 @@
 # Trillian instance using Kubernetes.
 
 function checkEnv() {
-  if [ -z ${PROJECT_ID+x} ] ||
-     [ -z ${CLUSTER_NAME+x} ] ||
-     [ -z ${REGION+x} ] ||
-     [ -z ${NODE_LOCATIONS+x} ] ||
-     [ -z ${MASTER_ZONE+x} ] ||
-     [ -z ${CONFIGMAP+x} ] ||
-     [ -z ${POOLSIZE+x} ] ||
-     [ -z ${MACHINE_TYPE+x} ]; then
-    echo "You must either pass an argument which is a config file, or set all the required environment variables" >&2
-    exit 1
-  fi
+	if [ -z ${PROJECT_ID+x} ] ||
+		[ -z ${CLUSTER_NAME+x} ] ||
+		[ -z ${REGION+x} ] ||
+		[ -z ${NODE_LOCATIONS+x} ] ||
+		[ -z ${MASTER_ZONE+x} ] ||
+		[ -z ${CONFIGMAP+x} ] ||
+		[ -z ${POOLSIZE+x} ] ||
+		[ -z ${MACHINE_TYPE+x} ]; then
+		echo "You must either pass an argument which is a config file, or set all the required environment variables" >&2
+		exit 1
+	fi
 }
 
 set -e
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ $# -eq 1 ]; then
-  source $1
+	source $1
 else
-  checkEnv
+	checkEnv
 fi
 
 # Check required binaries are installed
-if ! gcloud --help > /dev/null; then
-  echo "Need gcloud installed."
-  exit 1
+if ! gcloud --help >/dev/null; then
+	echo "Need gcloud installed."
+	exit 1
 fi
-if ! kubectl --help > /dev/null; then
-  echo "Need kubectl installed."
-  exit 1
+if ! kubectl --help >/dev/null; then
+	echo "Need kubectl installed."
+	exit 1
 fi
-if ! jq --help > /dev/null; then
-  echo "Please install the jq command"
-  exit 1
+if ! jq --help >/dev/null; then
+	echo "Please install the jq command"
+	exit 1
 fi
-if ! envsubst --help > /dev/null; then
-  echo "Please install the envsubt command"
-  exit 1
+if ! envsubst --help >/dev/null; then
+	echo "Please install the envsubt command"
+	exit 1
 fi
 
 echo "Creating new Trillian deployment"
@@ -64,7 +64,7 @@ gcloud config set container/cluster "${CLUSTER_NAME}"
 
 # Ensure Kubernetes Engine (container) and Cloud Spanner (spanner) services are enabled
 for SERVICE in container spanner; do
-  gcloud services enable ${SERVICE}.googleapis.com --project=${PROJECT_ID}
+	gcloud services enable ${SERVICE}.googleapis.com --project=${PROJECT_ID}
 done
 
 # Create cluster
@@ -80,12 +80,12 @@ gcloud spanner databases create trillian-db --instance trillian-spanner --ddl="$
 gcloud iam service-accounts create trillian --display-name "Trillian service account"
 # Get the service account key and push it into a Kubernetes secret:
 gcloud iam service-accounts keys create /dev/stdout --iam-account="trillian@${PROJECT_ID}.iam.gserviceaccount.com" |
-  kubectl create secret generic trillian-key --from-file=key.json=/dev/stdin
+	kubectl create secret generic trillian-key --from-file=key.json=/dev/stdin
 # Update roles
 for ROLE in spanner.databaseUser logging.logWriter monitoring.metricWriter; do
-  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member "serviceAccount:trillian@${PROJECT_ID}.iam.gserviceaccount.com" \
-    --role "roles/${ROLE}"
+	gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+		--member "serviceAccount:trillian@${PROJECT_ID}.iam.gserviceaccount.com" \
+		--role "roles/${ROLE}"
 done
 
 # Bring up etcd cluster

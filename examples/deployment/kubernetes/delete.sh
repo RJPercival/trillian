@@ -4,21 +4,21 @@
 
 set -e
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${DIR}/config.sh
 
 # Check required binaries are installed
-if ! gcloud --help > /dev/null; then
-  echo "Need gcloud installed."
-  exit 1
+if ! gcloud --help >/dev/null; then
+	echo "Need gcloud installed."
+	exit 1
 fi
-if ! kubectl --help > /dev/null; then
-  echo "Need kubectl installed."
-  exit 1
+if ! kubectl --help >/dev/null; then
+	echo "Need kubectl installed."
+	exit 1
 fi
-if ! jq --help > /dev/null; then
-  echo "Please install the jq command"
-  exit 1
+if ! jq --help >/dev/null; then
+	echo "Please install the jq command"
+	exit 1
 fi
 
 # Connect to gcloud
@@ -35,6 +35,6 @@ gcloud spanner instances delete trillian-spanner --quiet
 gcloud iam service-accounts delete trillian@${PROJECT_ID}.iam.gserviceaccount.com --quiet
 
 # Remove roles
-for ROLE in spanner.databaseUser logging.logWriter monitoring.metricWriter; do 
-  gcloud projects remove-iam-policy-binding "${PROJECT_ID}" --member "serviceAccount:trillian@${PROJECT_ID}.iam.gserviceaccount.com" --role "roles/${ROLE}"
+for ROLE in spanner.databaseUser logging.logWriter monitoring.metricWriter; do
+	gcloud projects remove-iam-policy-binding "${PROJECT_ID}" --member "serviceAccount:trillian@${PROJECT_ID}.iam.gserviceaccount.com" --role "roles/${ROLE}"
 done
