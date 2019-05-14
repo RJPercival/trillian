@@ -47,10 +47,9 @@ curl localhost:8091/metrics
 Debugging problems with Docker setup is beyond the scope of this document, but
 some helpful options include:
 
- - Showing debug information with the `--verbose` flag.
- - Running `docker events` in a parallel session.
- - Using `docker-compose ps` to show running containers and their ports.
-
+-   Showing debug information with the `--verbose` flag.
+-   Running `docker events` in a parallel session.
+-   Using `docker-compose ps` to show running containers and their ports.
 
 ## Cloud Deployments
 

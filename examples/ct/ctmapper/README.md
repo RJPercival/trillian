@@ -1,11 +1,10 @@
 # Example CT Mapper
 
-This is an example of a process which maps from a verifiable Log to a
-verifiable Map.
-It scans an RFC6962 CT Log server for certificate and precertificates,
-and adds entries to a Verifiable Map whose keys are SHA256(domainName), and
-whose values are a protobuf of indicies in the log where precerts/certs exist
-which have that domain in their subject/SAN fields.
+This is an example of a process which maps from a verifiable Log to a verifiable
+Map. It scans an RFC6962 CT Log server for certificate and precertificates, and
+adds entries to a Verifiable Map whose keys are SHA256(domainName), and whose
+values are a protobuf of indicies in the log where precerts/certs exist which
+have that domain in their subject/SAN fields.
 
 ## Running the example
 

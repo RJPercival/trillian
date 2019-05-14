@@ -71,8 +71,9 @@ manual intervention. The question of whether intervention is needed, though, is
 an important one and should be answered before any attempts are made to bypass
 the system. For example:
 
-* is the `logsigner` working properly and able to keep with the current demand?
-* is there a spike in requests that may justify the current token exhaustion?
+*   is the `logsigner` working properly and able to keep with the current
+    demand?
+*   is there a spike in requests that may justify the current token exhaustion?
 
 For "genuine" token exhaustion (i.e. the system really is under a load it can't
 cope with), it may be beneficial to let the quota system deny requests until
@@ -125,14 +126,14 @@ curl -X DELETE 'localhost:8091/v1beta1/quotas/global/read/config'
 
 The following flags apply to etcd quotas:
 
-* [--quota_dry_run](https://github.com/google/trillian/blob/3cf59cdfd0/server/trillian_log_server/main.go#L61)
-  (log and map servers)
-* [--quota_increase_factor](https://github.com/google/trillian/blob/3cf59cdfd0/server/trillian_log_signer/main.go#L60)
-  (logsigner)
-* [quota_max_cache_entries](https://github.com/google/trillian/blob/c0a332878f/server/trillian_log_server/main.go#L71)
-  (log and map servers)
-* [quota_min_batch_size](https://github.com/google/trillian/blob/c0a332878f/server/trillian_log_server/main.go#L69)
-  (log and map servers)
+*   [`--quota_dry_run`](https://github.com/google/trillian/blob/3cf59cdfd0/server/trillian_log_server/main.go#L61)
+    (log and map servers)
+*   [`--quota_increase_factor`](https://github.com/google/trillian/blob/3cf59cdfd0/server/trillian_log_signer/main.go#L60)
+    (logsigner)
+*   [`quota_max_cache_entries`](https://github.com/google/trillian/blob/c0a332878f/server/trillian_log_server/main.go#L71)
+    (log and map servers)
+*   [`quota_min_batch_size`](https://github.com/google/trillian/blob/c0a332878f/server/trillian_log_server/main.go#L69)
+    (log and map servers)
 
 `--quota_dry_run`, when set to true, stops quota depletion from blocking
 requests. This applies to all quotas, so it's only recommended in early
@@ -163,15 +164,15 @@ high number of trees or users, the least used ones are evicted from the cache
 
 The following metrics are relevant when considering quota behavior:
 
-* [interceptor_request_count](https://github.com/google/trillian/blob/3cf59cdfd0/server/interceptor/interceptor.go#L91)
-* [interceptor_request_denied_count](https://github.com/google/trillian/blob/3cf59cdfd0/server/interceptor/interceptor.go#L95)
-* [quota_acquired_tokens](https://github.com/google/trillian/blob/3cf59cdfd0/quota/metrics.go#L70)
-* [quota_returned_tokens](https://github.com/google/trillian/blob/3cf59cdfd0/quota/metrics.go#L71)
-* [quota_replenished_tokens](https://github.com/google/trillian/blob/3cf59cdfd0/quota/metrics.go#L71)
+*   [`interceptor_request_count`](https://github.com/google/trillian/blob/3cf59cdfd0/server/interceptor/interceptor.go#L91)
+*   [`interceptor_request_denied_count`](https://github.com/google/trillian/blob/3cf59cdfd0/server/interceptor/interceptor.go#L95)
+*   [`quota_acquired_tokens`](https://github.com/google/trillian/blob/3cf59cdfd0/quota/metrics.go#L70)
+*   [`quota_returned_tokens`](https://github.com/google/trillian/blob/3cf59cdfd0/quota/metrics.go#L71)
+*   [`quota_replenished_tokens`](https://github.com/google/trillian/blob/3cf59cdfd0/quota/metrics.go#L71)
 
 Requests denied due to token shortage are labeled on
 **interceptor_request_denied_count** as
-[insufficient_tokens](https://github.com/google/trillian/blob/3cf59cdfd0/server/interceptor/interceptor.go#L38).
+[`insufficient_tokens`](https://github.com/google/trillian/blob/3cf59cdfd0/server/interceptor/interceptor.go#L38).
 The ratio between **denied_with_insufficient_tokens** and
 **interceptor_request_count** is a strong indicator of token exhaustion.
 
@@ -197,19 +198,19 @@ contain a
 
 A few Spec examples are:
 
-* `global/read` (all read requests)
-* `global/write` (all write requests)
-* `trees/123/write` (write requests for tree 123)
-* `users/alice/read` (read requests made by user "alice")
+-   `global/read` (all read requests)
+-   `global/write` (all write requests)
+-   `trees/123/write` (write requests for tree 123)
+-   `users/alice/read` (read requests made by user "alice")
 
 Each request, depending on whether it's a read or write request, subtracts
 tokens from the following Specs:
 
-| read requests  | write requests  |
-| -------------- | --------------- |
-| users/$id/read | users/$id/write |
-| trees/$id/read | trees/$id/write |
-| global/read    | global/write    |
+read requests  | write requests
+-------------- | ---------------
+users/$id/read | users/$id/write
+trees/$id/read | trees/$id/write
+global/read    | global/write
 
 Quotas that aren't explicitly configured are considered infinite and won't block
 requests.

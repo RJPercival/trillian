@@ -7,14 +7,15 @@ Not yet released; provisionally v2.0.0 (may change).
 ### Add Profiling Flags to Binaries
 
 The `trillian_log_server`, `trillian_log_signer` and `trillian_map_server`
-binaries now have CPU and heap profiling flags. Profiling is off by default.
-For more details see the
-[Go Blog](https://blog.golang.org/profiling-go-programs).
+binaries now have CPU and heap profiling flags. Profiling is off by default. For
+more details see the [Go Blog](https://blog.golang.org/profiling-go-programs).
+
 ### Map performance tweaks
 
 The map mode has had some performance tweaks added:
-* A workaround for locking issues which affect the map when it's used in
-  single-transaction mode.
+
+*   A workaround for locking issues which affect the map when it's used in
+    single-transaction mode.
 
 ### Introduce BatchInclusionProof function
 
@@ -34,9 +35,9 @@ The admin API calls to list trees backed by Cloud Spanner trees are fixed.
 There were some cases where the Log RPC server could leak storage transactions
 in error situations. These have now been fixed. If you have a custom storage
 implementation review the fixes made to the MySQL Log storage to see if they
-need to be applied to your code (`storage/mysql/log_storage.go`). The Map
-server had similar issues but these were fixed without requiring changes to
-storage code.
+need to be applied to your code (`storage/mysql/log_storage.go`). The Map server
+had similar issues but these were fixed without requiring changes to storage
+code.
 
 ### GetLatestSignedLogRoot With Consistency Proof
 
@@ -98,8 +99,8 @@ default limit on idle connections is controlled by
 
 #### Enfored no concurrent use of MySQL tx
 
-Concurrently using a single MySQL transaction can cause the driver to error
-out, so we now attempt to prevent this from happening.
+Concurrently using a single MySQL transaction can cause the driver to error out,
+so we now attempt to prevent this from happening.
 
 ### Removal of length limits for a tree's `display_name` and `description`
 
@@ -109,10 +110,10 @@ still impose its own limitations.
 
 ### Server validation of leaf hashes
 
-The log server now checks that leaf hashes are the correct length and returns
-an InvalidArgument error if they are not. Previously, GetLeavesByHash would
-simply not return any matching leaves for invalid hashes, and
-GetInclusionProofByHash would return a NotFound error.
+The log server now checks that leaf hashes are the correct length and returns an
+InvalidArgument error if they are not. Previously, GetLeavesByHash would simply
+not return any matching leaves for invalid hashes, and GetInclusionProofByHash
+would return a NotFound error.
 
 ### Map client
 
@@ -162,8 +163,8 @@ MySQL-related data (e.g. `MYSQL_DATABASE`). The variable names are based on
 those for the
 [MySQL Docker image](https://hub.docker.com/_/mysql#environment-variables).
 
-Docker images have been upgraded from Go 1.9 to 1.11. They now use ["Distroless"
-base images](https://github.com/GoogleContainerTools/distroless).
+Docker images have been upgraded from Go 1.9 to 1.11. They now use
+["Distroless" base images](https://github.com/GoogleContainerTools/distroless).
 
 ### Dropped metrics
 
@@ -514,11 +515,11 @@ The API protos have been rebuilt with gRPC 1.3.
 Timestamps have been added to the log leaves in the MySQL database. Before
 upgrading to this version you **must** make the following schema changes:
 
-*   Add the following column to the `LeafData` table. If you have existing data
+-   Add the following column to the `LeafData` table. If you have existing data
     in the queue you might have to remove the NOT NULL clause:
     `QueueTimestampNanos BIGINT NOT NULL`
 
-*   Add the following column to the `SequencedLeafData` table:
+-   Add the following column to the `SequencedLeafData` table:
     `IntegrateTimestampNanos BIGINT NOT NULL`
 
 The above timestamps are used to export metrics via monitoring that give the

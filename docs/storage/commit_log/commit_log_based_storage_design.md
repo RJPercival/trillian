@@ -15,15 +15,15 @@ from the commit log to serve queries.
 
 This design allows for:
 
-*   flexibility in scaling Trillian deployments,
-*   easier recovery from corrupt/failed database deployments since in many
-    cases operators can simply delete the failed DB instance and allow it to be
+-   flexibility in scaling Trillian deployments,
+-   easier recovery from corrupt/failed database deployments since in many cases
+    operators can simply delete the failed DB instance and allow it to be
     rebuilt from the commit log, while the remaining instances continue to
     serve.
 
 Initially, this will be built using Apache Kafka for the commit log, with
-datacentre-local Apache HBase instances for the serving databases, since this
-is what Cloudflare has operational experience in running, but other distributed
+datacentre-local Apache HBase instances for the serving databases, since this is
+what Cloudflare has operational experience in running, but other distributed
 commit-log and database engines may be available - this model should also work
 with instance-local database implementations such as RocksDB etc. too.
 
@@ -38,11 +38,9 @@ provide strong global consistency.
 
 The design presented here requires:
 
-*   A durable, ordered, and immutable commit log.
-*   A "local" storage mechanism which can support the operations required by
-    the Trillian {tree,log}_storage API.
-
-
+-   A durable, ordered, and immutable commit log.
+-   A "local" storage mechanism which can support the operations required by the
+    Trillian {tree,log}_storage API.
 
 ## Design Overview
 
@@ -60,13 +58,13 @@ HBase instances are assumed to be one-per-cluster, built from the contents of
 the Kafka topics, and, consequently, are essentially disposable.
 
 Queued leaves are sent by the Trillian frontends to the Kafka `Leaves` topic.
-Since Kafka topics are append-only and immutable, this effectively sequences
-the entries in the queue.
-The signer nodes track the leaves and STHs topics to bring their local database
-instances up-to-date.  The current master signer will additionally incorporate
-new entries in the leaves topic into its tree, ensuring the Kafka offset number
-of each leaf matches its position in the Merkle tree, then generate a new
-STH which it publishes to the STH topic before updating its local database.
+Since Kafka topics are append-only and immutable, this effectively sequences the
+entries in the queue. The signer nodes track the leaves and STHs topics to bring
+their local database instances up-to-date. The current master signer will
+additionally incorporate new entries in the leaves topic into its tree, ensuring
+the Kafka offset number of each leaf matches its position in the Merkle tree,
+then generate a new STH which it publishes to the STH topic before updating its
+local database.
 
 Since the commit log forms the source of truth for the log entry ordering and
 committed STHs, everything else can be derived from that. This means that
@@ -77,9 +75,9 @@ only constraint on the implementation is that the final new/updated STH must
 only be written to the local storage iff all other buffered writes have been
 successfully flushed.
 
-The addition of this style of storage implementation requires that Trillian
-does not guarantee the perfect deduplication of entries, even though it may be
-possible to do so with some storage implementations.  i.e. personalities MUST
+The addition of this style of storage implementation requires that Trillian does
+not guarantee the perfect deduplication of entries, even though it may be
+possible to do so with some storage implementations. i.e. personalities MUST
 present LeafIdentityHashes, and Trillian MAY deduplicate.
 
 ## Detailed Design
@@ -87,7 +85,7 @@ present LeafIdentityHashes, and Trillian MAY deduplicate.
 #### Enqueuing leaves
 
 RPC calls to frontend `QueueLeaves` results in the leaves being individually
-added to the Kafka topic `Leaves`.  They need to be added individually to allow
+added to the Kafka topic `Leaves`. They need to be added individually to allow
 the Kafka topic sequencing to be the definitive source of log sequence
 information.
 
@@ -101,22 +99,21 @@ using other storage implementations, they may well be so currently.
 
 Multiple sequencers may be running to provide resilience, if this is the case
 there must be a mechanism for choosing a single master instance among the
-running sequencers. The Trillian repo provides an etcd-backed implementation
-of this already.
+running sequencers. The Trillian repo provides an etcd-backed implementation of
+this already.
 
 A sequencer must only participate/remain the master if its local database state
 is at least as new at the latest message in the Kafka `STHs` topic.
 
-The current master sequencer will create new STHs and publish them to the
-`STHs` topic, the remaining sequencers will run in a "mirror" mode to keep
-their local database state up-to-date with the master.
+The current master sequencer will create new STHs and publish them to the `STHs`
+topic, the remaining sequencers will run in a "mirror" mode to keep their local
+database state up-to-date with the master.
 
 #### Local DB storage
 
 This does not *need* to be transactional, because writes should be idempotent,
-but the implementation of the Trillian storage driver must buffer *all*
-writes and only attempt to apply them to the local storage when `Commit` is
-called.
+but the implementation of the Trillian storage driver must buffer *all* writes
+and only attempt to apply them to the local storage when `Commit` is called.
 
 The write of an updated STH to local storage needs slightly special attention,
 in that it must be the last thing written by `Commit`, and must only be written
@@ -131,7 +128,6 @@ signer process outlined below.
 Assigning sequence numbers to queued leaves is implicitly performed by the
 addition of entries to the Kafka `Leaves` topic (this is termed *offset* in
 Kafka documentation).
-
 
 ##### Abstract Signer process
 
@@ -228,15 +224,15 @@ func SignerRun() {
 
 ##### Fit with storage interfaces
 
-LogStorage interfaces will need to be tweaked slightly, in particular:
- - `UpdateSequencedLeaves` should be pulled out of `LeafDequeuer` and moved
-   into a `LeafSequencer` (or something) interface.
- - It would be nice to introduce a roll-up interface which describes the
-   responsibilities of the "local DB" thing, so that we can compose
-   `commit-queue+local` storage implementations using existing DB impls
-   (or at least not tie this tightly to HBase).
+LogStorage interfaces will need to be tweaked slightly, in particular: -
+`UpdateSequencedLeaves` should be pulled out of `LeafDequeuer` and moved into a
+`LeafSequencer` (or something) interface. - It would be nice to introduce a
+roll-up interface which describes the responsibilities of the "local DB" thing,
+so that we can compose `commit-queue+local` storage implementations using
+existing DB impls (or at least not tie this tightly to HBase).
 
 ###### TX
+
 ```golang
 
 type splitTX struct {
@@ -255,14 +251,14 @@ type splitTX struct {
 
 ###### `Storage.Begin()`
 
-Starts a Trillian transaction, this will do:
-   1. the read of `currentSTH`, `treeRevision`, and `sthOffset` from the DB
-   1. verification of that against its corresponding entry in Kafka
+Starts a Trillian transaction, this will do: 1. the read of `currentSTH`,
+`treeRevision`, and `sthOffset` from the DB 1. verification of that against its
+corresponding entry in Kafka
 
-and return a `LogTX` struct containing these values as unexported fields.
-**The HBase LogTX struct will buffer all writes locally until `Commit` is
-called**, whereupon it'll attempt to action the writes as HBase `PUT` requests
-(presumably it can be smart about batching where appropriate).
+and return a `LogTX` struct containing these values as unexported fields. **The
+HBase LogTX struct will buffer all writes locally until `Commit` is called**,
+whereupon it'll attempt to action the writes as HBase `PUT` requests (presumably
+it can be smart about batching where appropriate).
 
 ```golang
 // Begin starts a Trillian transaction.
@@ -295,8 +291,8 @@ func (ls *CQComboStorage) Begin() (LogTX, error) {
 }
 ```
 
-
 ###### `DequeueLeaves()`
+
 Calls to this method ignore `limit` and `cutoff` when there exist newer STHs in
 the Kafka queue (because we're following someone else's footsteps), and return
 the `batch` of leaves outlined above.
@@ -353,5 +349,3 @@ This method should be moved out from `LeafDequeuer` and into a new interface
 `LeafWriter` implemented by dbTX.
 
 **TODO(al): keep writing!**
-
-
