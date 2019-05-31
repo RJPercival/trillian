@@ -27,6 +27,7 @@ type provider struct {
 func (p *provider) LogStorage() storage.LogStorage     { return nil }
 func (p *provider) MapStorage() storage.MapStorage     { return nil }
 func (p *provider) AdminStorage() storage.AdminStorage { return nil }
+func (p *provider) Migrate() error                     { return nil }
 func (p *provider) Close() error                       { return nil }
 
 func TestStorageProviderRegistration(t *testing.T) {

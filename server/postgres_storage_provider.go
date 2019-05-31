@@ -19,6 +19,8 @@ import (
 	"flag"
 	"sync"
 
+	"github.com/golang-migrate/migrate"
+	migratedb "github.com/golang-migrate/migrate/database/postgres"
 	"github.com/golang/glog"
 	"github.com/google/trillian/monitoring"
 	"github.com/google/trillian/storage"
@@ -26,6 +28,13 @@ import (
 
 	// Load PG driver
 	_ "github.com/lib/pq"
+)
+
+const (
+	// Increment this when changing the database schema and provide
+	// migration scripts in the location pointed to by schemaMigrationSource
+	pgSchemaVersion         = 1
+	pgSchemaMigrationSource = "storage/postgres/schema"
 )
 
 var (
@@ -65,8 +74,19 @@ func newPGProvider(mf monitoring.MetricFactory) (StorageProvider, error) {
 	return pgStorageInstance, nil
 }
 
-func (s *pgProvider) LogStorage() storage.LogStorage {
+func (s *pgProvider) Migrate() error {
+	dbDriver, err := migratedb.WithInstance(s.db, &migratedb.Config{})
+	if err != nil {
+		return err
+	}
+	migration, err := migrate.NewWithDatabaseInstance(pgSchemaMigrationSource, "Postgres Storage", dbDriver)
+	if err != nil {
+		return err
+	}
+	return migration.Migrate(pgSchemaVersion)
+}
 
+func (s *pgProvider) LogStorage() storage.LogStorage {
 	glog.Warningf("Support for the PostgreSQL log is experimental.  Please use at your own risk!!!")
 	return postgres.NewLogStorage(s.db, s.mf)
 }

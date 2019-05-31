@@ -19,13 +19,22 @@ import (
 	"flag"
 	"sync"
 
+	"github.com/golang-migrate/migrate"
+	migratedb "github.com/golang-migrate/migrate/database/mysql"
 	"github.com/golang/glog"
 	"github.com/google/trillian/monitoring"
 	"github.com/google/trillian/storage"
 	"github.com/google/trillian/storage/mysql"
 
 	// Load MySQL driver
-	_ "github.com/go-sql-driver/mysql"
+	mysqldriver "github.com/go-sql-driver/mysql"
+)
+
+const (
+	// Increment this when changing the database schema and provide
+	// migration scripts in the location pointed to by schemaMigrationSource
+	mysqlSchemaVersion         = 1
+	mysqlSchemaMigrationSource = "storage/mysql/schema"
 )
 
 var (
@@ -71,6 +80,35 @@ func newMySQLStorageProvider(mf monitoring.MetricFactory) (StorageProvider, erro
 		return nil, mysqlOnceErr
 	}
 	return mySQLstorageInstance, nil
+}
+
+func (s *mysqlProvider) Migrate() error {
+	// Make a new connection for migration purposes, instead of using s.db,
+	// because it requires multi-statement mode to be enabled.
+	cfg, err := mysqldriver.ParseDSN(*mySQLURI)
+	if err != nil {
+		return err
+	}
+	// Enable multiple statements in one query. This "greatly increases the
+	// risk of SQL injections" (https://github.com/go-sql-driver/mysql#multistatements),
+	// but allows batch queries and is required by golang-migrate
+	// (https://godoc.org/github.com/golang-migrate/migrate/database/mysql#WithInstance),
+	// which we use for applying database schema changes.
+	cfg.MultiStatements = true
+
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		return err
+	}
+	dbDriver, err := migratedb.WithInstance(db, &migratedb.Config{})
+	if err != nil {
+		return err
+	}
+	migration, err := migrate.NewWithDatabaseInstance(mysqlSchemaMigrationSource, "MySQL Storage", dbDriver)
+	if err != nil {
+		return err
+	}
+	return migration.Migrate(mysqlSchemaVersion)
 }
 
 func (s *mysqlProvider) LogStorage() storage.LogStorage {

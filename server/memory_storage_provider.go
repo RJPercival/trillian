@@ -39,6 +39,10 @@ func newMemoryStorageProvider(mf monitoring.MetricFactory) (StorageProvider, err
 	}, nil
 }
 
+func (s *memProvider) Migrate() error {
+	return nil
+}
+
 func (s *memProvider) LogStorage() storage.LogStorage {
 	return memory.NewLogStorage(s.ts, s.mf)
 }

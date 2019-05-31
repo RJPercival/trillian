@@ -102,6 +102,10 @@ func main() {
 	}
 	defer sp.Close()
 
+	if err := sp.Migrate(); err != nil {
+		glog.Exitf("Failed to migrate storage to version used by this binary: %v", err)
+	}
+
 	client, err := etcd.NewClientFromString(*server.EtcdServers)
 	if err != nil {
 		glog.Exitf("Failed to connect to etcd at %v: %v", server.EtcdServers, err)

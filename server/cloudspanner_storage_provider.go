@@ -25,10 +25,20 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
+	database "cloud.google.com/go/spanner/admin/database/apiv1"
+	"github.com/golang-migrate/migrate"
+	migratedb "github.com/golang-migrate/migrate/database/spanner"
 	"github.com/golang/glog"
 	"github.com/google/trillian/monitoring"
 	"github.com/google/trillian/storage"
 	"github.com/google/trillian/storage/cloudspanner"
+)
+
+const (
+	// Increment this when changing the database schema and provide
+	// migration scripts in the location pointed to by schemaMigrationSource
+	csSchemaVersion         = 1
+	csSchemaMigrationSource = "storage/cloudspanner/schema"
 )
 
 var (
@@ -69,7 +79,8 @@ func warn() {
 }
 
 type cloudSpannerProvider struct {
-	client *spanner.Client
+	adminClient *database.DatabaseAdminClient
+	client      *spanner.Client
 }
 
 func configFromFlags() spanner.ClientConfig {
@@ -93,14 +104,32 @@ func newCloudSpannerStorageProvider(_ monitoring.MetricFactory) (StorageProvider
 		return csStorageInstance, nil
 	}
 
+	adminClient, err := database.NewDatabaseAdminClient(context.TODO())
+	if err != nil {
+		return nil, err
+	}
 	client, err := spanner.NewClientWithConfig(context.TODO(), *csURI, configFromFlags())
 	if err != nil {
 		return nil, err
 	}
 	csStorageInstance = &cloudSpannerProvider{
-		client: client,
+		adminClient: adminClient,
+		client:      client,
 	}
 	return csStorageInstance, nil
+}
+
+func (s *cloudSpannerProvider) Migrate() error {
+	db := migratedb.NewDB(*s.adminClient, *s.client)
+	dbDriver, err := migratedb.WithInstance(db, &migratedb.Config{})
+	if err != nil {
+		return err
+	}
+	migration, err := migrate.NewWithDatabaseInstance(csSchemaMigrationSource, "Cloud Spanner Storage", dbDriver)
+	if err != nil {
+		return err
+	}
+	return migration.Migrate(csSchemaVersion)
 }
 
 // LogStorage builds and returns a new storage.LogStorage using CloudSpanner.

@@ -95,6 +95,9 @@ type StorageProvider interface {
 	// AdminStorage creates and returns a AdminStorage implementation.
 	AdminStorage() storage.AdminStorage
 
+	// Migrate upgrades/downgrades the storage schema to a version
+	// compatible with the storage implementations.
+	Migrate() error
 	// Close closes the underlying storage.
 	Close() error
 }
