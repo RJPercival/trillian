@@ -102,6 +102,7 @@ func main() {
 	if err != nil {
 		glog.Exitf("Failed to get storage provider: %v", err)
 	}
+	defer sp.Close()
 
 	if err := sp.Migrate(); err != nil {
 		glog.Exitf("Failed to migrate storage to version used by this binary: %v", err)
