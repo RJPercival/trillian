@@ -28,7 +28,7 @@ and running on Google Cloud.
      1. Fill in a name (we'll call the DB instance `${DATABASE_INSTANCE}`)
      2. Click continue
      4. In `Define your database schema`, click the `Edit as text` slider
-     3. paste contents of [spanner.sd](storage/cloudspanner/spanner.sdl) into the text box (you may need to remove the SQL comments prefixed with `--` at the top)
+     3. paste contents of [spanner.sd](storage/cloudspanner/schema/spanner.sdl) into the text box (you may need to remove the SQL comments prefixed with `--` at the top)
      4. Click on create
 
  5. Create kubernetes cluster
