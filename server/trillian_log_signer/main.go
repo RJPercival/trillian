@@ -22,8 +22,10 @@ import (
 	_ "net/http/pprof" // Register pprof HTTP handlers.
 	"os"
 	"runtime/pprof"
+	"strings"
 	"time"
 
+	"github.com/coreos/etcd/clientv3"
 	"github.com/golang/glog"
 	"github.com/google/trillian/cmd"
 	"github.com/google/trillian/extension"
@@ -38,7 +40,6 @@ import (
 	"github.com/google/trillian/util/election"
 	"github.com/google/trillian/util/election2"
 	etcdelect "github.com/google/trillian/util/election2/etcd"
-	"github.com/google/trillian/util/etcd"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
 
@@ -107,11 +108,15 @@ func main() {
 	}
 	defer sp.Close()
 
-	client, err := etcd.NewClientFromString(*server.EtcdServers)
-	if err != nil {
-		glog.Exitf("Failed to connect to etcd at %v: %v", server.EtcdServers, err)
-	}
-	if client != nil {
+	var client *clientv3.Client
+	if *server.EtcdServers != "" {
+		client, err = clientv3.New(clientv3.Config{
+			Endpoints:   strings.Split(*server.EtcdServers, ","),
+			DialTimeout: 5 * time.Second,
+		})
+		if err != nil {
+			glog.Exitf("Failed to connect to etcd at %v: %v", *server.EtcdServers, err)
+		}
 		defer client.Close()
 	}
 

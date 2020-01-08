@@ -20,8 +20,10 @@ import (
 	_ "net/http/pprof" // Register pprof HTTP handlers.
 	"os"
 	"runtime/pprof"
+	"strings"
 	"time"
 
+	"github.com/coreos/etcd/clientv3"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/trillian"
@@ -36,7 +38,6 @@ import (
 	"github.com/google/trillian/quota/etcd/quotapb"
 	"github.com/google/trillian/server"
 	"github.com/google/trillian/storage"
-	"github.com/google/trillian/util/etcd"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
 
@@ -109,9 +110,16 @@ func main() {
 	}
 	defer sp.Close()
 
-	client, err := etcd.NewClientFromString(*server.EtcdServers)
-	if err != nil {
-		glog.Exitf("Failed to connect to etcd at %v: %v", server.EtcdServers, err)
+	var client *clientv3.Client
+	if *server.EtcdServers != "" {
+		client, err = clientv3.New(clientv3.Config{
+			Endpoints:   strings.Split(*server.EtcdServers, ","),
+			DialTimeout: 5 * time.Second,
+		})
+		if err != nil {
+			glog.Exitf("Failed to connect to etcd at %v: %v", *server.EtcdServers, err)
+		}
+		defer client.Close()
 	}
 
 	qm, err := server.NewQuotaManagerFromFlags()

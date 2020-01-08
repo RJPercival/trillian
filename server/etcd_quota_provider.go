@@ -17,16 +17,22 @@ package server
 import (
 	"flag"
 	"fmt"
+	"strings"
+	"time"
 
+	"github.com/coreos/etcd/clientv3"
 	"github.com/golang/glog"
 	"github.com/google/trillian/quota"
 	"github.com/google/trillian/quota/cacheqm"
 	"github.com/google/trillian/quota/etcd/etcdqm"
-	"github.com/google/trillian/util/etcd"
 )
 
-// QuotaEtcd represents the etcd quota implementation.
-const QuotaEtcd = "etcd"
+const (
+	// QuotaEtcd represents the etcd quota implementation.
+	QuotaEtcd = "etcd"
+
+	dialTimeout = 5 * time.Second
+)
 
 var (
 	// EtcdServers is a flag containing the address(es) of etcd servers
@@ -48,7 +54,10 @@ func newEtcdQuotaManager() (quota.Manager, error) {
 	if *EtcdServers == "" {
 		return nil, fmt.Errorf("can't create etcd quotamanager - etcd_servers flag is unset")
 	}
-	client, err := etcd.NewClientFromString(*EtcdServers)
+	client, err := clientv3.New(clientv3.Config{
+		Endpoints:   strings.Split(*EtcdServers, ","),
+		DialTimeout: dialTimeout,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to etcd at %v: %v", *EtcdServers, err)
 	}
