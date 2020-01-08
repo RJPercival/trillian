@@ -118,14 +118,6 @@ func main() {
 		glog.Exitf("Failed to connect to etcd at %v: %v", *server.EtcdServers, err)
 	}
 
-	// Announce our endpoints to etcd if so configured.
-	unannounce := server.AnnounceSelf(ctx, client, *etcdService, *rpcEndpoint)
-	defer unannounce()
-	if *httpEndpoint != "" {
-		unannounceHTTP := server.AnnounceSelf(ctx, client, *etcdHTTPService, *httpEndpoint)
-		defer unannounceHTTP()
-	}
-
 	qm, err := server.NewQuotaManagerFromFlags()
 	if err != nil {
 		glog.Exitf("Error creating quota manager: %v", err)

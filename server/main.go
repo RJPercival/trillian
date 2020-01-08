@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/golang/glog"
 	"github.com/google/trillian"
 	"github.com/google/trillian/extension"
@@ -34,10 +33,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/naming"
 	"google.golang.org/grpc/reflection"
 
-	etcdnaming "github.com/coreos/etcd/clientv3/naming"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 )
 
@@ -218,35 +215,4 @@ func (m *Main) newGRPCServer() (*grpc.Server, error) {
 	s := grpc.NewServer(serverOpts...)
 
 	return s, nil
-}
-
-// AnnounceSelf announces this binary's presence to etcd.  Returns a function that
-// should be called on process exit.
-// AnnounceSelf does nothing if client is nil.
-func AnnounceSelf(ctx context.Context, client *clientv3.Client, etcdService, endpoint string) func() {
-	if client == nil {
-		return func() {}
-	}
-
-	res := etcdnaming.GRPCResolver{Client: client}
-
-	// Get a lease so our entry self-destructs.
-	leaseRsp, err := client.Grant(ctx, 30)
-	if err != nil {
-		glog.Exitf("Failed to get lease from etcd: %v", err)
-	}
-	client.KeepAlive(ctx, leaseRsp.ID)
-
-	update := naming.Update{Op: naming.Add, Addr: endpoint} // nolint: megacheck
-	res.Update(ctx, etcdService, update, clientv3.WithLease(leaseRsp.ID))
-	glog.Infof("Announcing our presence in %v with %+v", etcdService, update)
-
-	bye := naming.Update{Op: naming.Delete, Addr: endpoint} // nolint: megacheck
-	return func() {
-		// Use a background context because the original context may have been cancelled.
-		glog.Infof("Removing our presence in %v with %+v", etcdService, bye)
-		ctx := context.Background()
-		res.Update(ctx, etcdService, bye)
-		client.Revoke(ctx, leaseRsp.ID)
-	}
 }
